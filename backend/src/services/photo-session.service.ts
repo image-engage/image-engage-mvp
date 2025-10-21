@@ -1,6 +1,7 @@
 // src/services/photo-session.service.ts
 import { supabase } from '../config/database'; // Assuming this imports your Supabase client
 import { ApiResponse, PatientConsent, PhotoSession } from '../types';
+import { PatientService } from './patient.service'; // 👈 Import PatientService
 import { v4 as uuidv4 } from 'uuid';
 import { Express } from 'express'; // Import Express for Multer file type
 
@@ -242,21 +243,55 @@ export class PhotoSessionService {
         return { success: false, message2: 'Failed to create photo session record' };
       }
 
-      // Update the patient's last photo session date
-      const { error: updateError } = await supabase
-        .from('patients')
-        .update({ last_photo_session: currentDate, updated_at: currentDate })
-        .eq('id', patientId);
-
-      if (updateError) {
-          console.error('Database error updating patient last_photo_session:', updateError);
-          // Decide if this error should prevent the overall success. For now, it's a warning.
+      // FIX: Update the patient's last photo session using the correct service and value
+      const updateResult = await PatientService.updateLastPhotoSession(
+        practiceId,
+        patientId,
+        patientPhotoId // 👈 Use the session ID, not the date
+      );
+      if (!updateResult.success) {
+        console.warn(`Failed to update last_photo_session for patient ${patientId}: ${updateResult.message2}`);
       }
 
       return { success: true, message2: 'Photo session record created successfully', data: session };
     } catch (error) {
       console.error('Error creating photo session record:', error);
       return { success: false, message2: 'Internal server error during session record creation.' };
+    }
+  }
+
+  /**
+   * Retrieves a single photo session by its patient_photo_id.
+   */
+  static async getPhotoSessionById(practiceId: string, patientPhotoId: string): Promise<ApiResponse<PhotoSession>> {
+    try {
+      const { data: session, error } = await supabase
+        .from('photo_sessions')
+        .select('*') // Select all columns from the photo_sessions table
+        .eq('practice_id', practiceId)
+        // FIX: The frontend is sending the patient_id as the session identifier.
+        // We should query by patient_id and get the most recent session.
+        .eq('patient_photo_id', patientPhotoId) 
+        .order('session_date', { ascending: false }) // Get the latest session first
+        .limit(1) // We only want one session
+        .single(); // Expect a single result
+
+      if (error) {
+        console.error(`Database error retrieving session ${patientPhotoId}:`, error);
+        if (error.code === 'PGRST116') { // "PGRST116" is the code for "0 rows returned" from a .single() query
+          return { success: false, message2: `Photo session with ID ${patientPhotoId} not found.` };
+        }
+        return { success: false, message2: 'Failed to retrieve photo session.' };
+      }
+
+      return { success: true, message2: 'Photo session retrieved successfully', data: session };
+
+    } catch (error) {
+      console.error('Error in getPhotoSessionById:', error);
+      return { 
+        success: false, 
+        message2: 'Internal server error while retrieving photo session.' 
+      };
     }
   }
 

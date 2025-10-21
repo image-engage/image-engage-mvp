@@ -148,7 +148,7 @@ export class PatientService {
       const { data, error, count } = await supabase
         .from('patients')
         .update({ 
-          last_photo_session: sessionId,
+          last_photo_session: sessionId, // This is the correct column to update
           updated_at: currentDate // Also update the general updated_at column
         })
         .eq('id', patientId)

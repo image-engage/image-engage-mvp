@@ -9,6 +9,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 // All routes for photo sessions require authentication
 router.use(authenticateToken);
 
+
+
 router.post(
   '/upload-photos',
   upload.fields([
@@ -18,8 +20,20 @@ router.post(
   PhotoSessionController.uploadPhotos
 );
 
+// Specific routes must come before dynamic routes.
 router.get('/', PhotoSessionController.getPhotoSessions);
 router.get('/waiting-patients', PhotoSessionController.getWaitingPatients);
 router.post('/create-workflow', PhotoSessionController.createWorkflowSession);
+
+// Dynamic route for a specific session ID. This must be last among GET routes.
+router.get(
+  '/:sessionId',
+  (req, res, next) => {
+    console.log('🔍 GET /:sessionId route hit');
+    console.log('Session ID from params:', req.params.sessionId);
+    next();
+  },
+  PhotoSessionController.getPhotoSessionById
+);
 
 export default router;

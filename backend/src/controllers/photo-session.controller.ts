@@ -74,9 +74,36 @@ export class PhotoSessionController {
   }
 
   /**
+   * Retrieves a single photo session by its ID (patientPhotoId).
+   */
+  static async getPhotoSessionById(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
+   console.log('practiceId')
+console.log('sessionId')
+   
+    try {
+      const practiceId = req.practiceId!;
+      const { sessionId } = req.params;
+
+      if (!sessionId) {
+        res.status(400).json({ success: false, message2: 'Session ID is required.' });
+        return;
+      }
+console.log('practiceId', practiceId)
+console.log('sessionId', sessionId)
+      const result = await PhotoSessionService.getPhotoSessionById(practiceId, sessionId);
+      res.status(result.success ? 200 : 404).json(result);
+
+    } catch (error) {
+      console.error('Get photo session by ID error:', error);
+      res.status(500).json({ success: false, message2: 'Internal server error' });
+    }
+  }
+
+  /**
    * Retrieves all photo sessions for the authenticated practice.
    */
   static async getPhotoSessions(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
+    console.log('practiceIdAAAAAA', req.practiceId)
     try {
       const practiceId = req.practiceId!;
       const result = await PhotoSessionService.getPhotoSessionsByPractice(practiceId);
@@ -97,6 +124,7 @@ export class PhotoSessionController {
    * This means they have a completed consent form but no photo session started yet.
    */
   static async getWaitingPatients(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
+        console.log('practiceIdBBBB', req.practiceId)
     try {
       const practiceId = req.practiceId!;
       const result = await PhotoSessionService.getWaitingPatients(practiceId);

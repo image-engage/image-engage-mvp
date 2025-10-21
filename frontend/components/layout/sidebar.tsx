@@ -20,8 +20,9 @@ interface NavItem {
 const primaryNavigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Capture Media', href: '/dashboard/workflow', icon: FileText },
-  { name: 'View Media', href: '/dashboard/completed-sessions', icon: FileText },
-  { name: 'View Consents', href: '/dashboard/consents', icon: FileText },
+  { name: 'View Media', href: '/dashboard/media-management', icon: FileText },
+  { name: 'Manage Consents', href: '/dashboard/consents', icon: FileText },
+
 ];
 
 const secondaryNavigation: NavItem[] = [

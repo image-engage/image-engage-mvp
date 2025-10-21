@@ -83,7 +83,7 @@ export default function DashboardPage() {
       title: 'View media',
       icon: Archive,
       description: 'View completed Sessions',
-      href: 'completed-sessions',
+      href: 'media-management',
       buttonColor: 'bg-gray-700 hover:bg-gray-800', // Tertiary Action
     },
   ];
