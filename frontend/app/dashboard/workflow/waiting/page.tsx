@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle2, User, Home, Zap, Smile, Info } from 'lucide-react';
+import { Clock, CheckCircle2, User, Home, Zap, Smile, Info, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 // Define the expected session interface for better type safety
@@ -47,6 +47,12 @@ export default function WaitingPage() {
       <header className="bg-white border-b border-gray-200 shadow-md sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Link href="/dashboard/workflow/patient-queue">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Queue
+              </Button>
+            </Link>
             <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <Clock className="h-6 w-6 text-white" />
             </div>

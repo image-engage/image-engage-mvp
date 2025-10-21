@@ -174,7 +174,7 @@ export function Sidebar() {
           </Button>
           <div className="text-center">
             <p className="text-xs text-gray-400">
-              &copy; {new Date().getFullYear()} {practiceName}
+              &copy; {new Date().getFullYear()} Image Engage AI
             </p>
             <p className="text-xs text-gray-400">
               Dental Marketing Platform

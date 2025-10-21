@@ -6,6 +6,7 @@ export interface BasicInfo {
     state: string;
     zipCode: string;
   };
+  websiteUrl?: string;
   logo?: File;
   brandColors: {
     primary: string;
@@ -27,7 +28,6 @@ export interface BasicInfo {
 }
 
 export interface SocialMedia {
-  websiteUrl: string;
   platforms: {
     instagram: { connected: boolean; username: string; accessToken?: string };
     facebook: { connected: boolean; pageId: string; accessToken?: string };
@@ -58,7 +58,7 @@ export interface Billing {
 export interface Legal {
   termsAccepted: boolean;
   privacyPolicyAccepted: boolean;
-  hipaaSignature: {
+  hipaaSignature?: {
     fullName: string;
     title: string;
     signatureDate: string;

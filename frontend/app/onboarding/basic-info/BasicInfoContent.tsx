@@ -67,11 +67,13 @@ export default function BasicInfoContent({ onNext }: PageProps) {
     console.log('Basic Info:', data);
     
     // Create a temporary object to store in localStorage.
-    // We save the logo preview string, not the File object.
-    const dataToStore = {
-      ...data,
-      logo: logoPreview,
-    };
+    // We explicitly exclude the 'logo' property (which can be a File object or a large dataURL)
+    // to avoid the QuotaExceededError and JSON serialization issues.
+    const dataToStore = { ...data };
+    delete dataToStore.logo; // Remove the logo property
+    // The logoPreview state is only for display within this component.
+    // For cross-page persistence, the logo would typically be uploaded to a server,
+    // and its URL/ID stored instead.
 
     localStorage.setItem('onboardingData', JSON.stringify(dataToStore));
     setIsSubmitted(true);
@@ -114,19 +116,6 @@ export default function BasicInfoContent({ onNext }: PageProps) {
             </h3>
             
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="businessName">Practice Name *</Label>
-                <Input
-                  id="businessName"
-                  {...register('businessName', { required: 'Practice name is required' })}
-                  className="mt-1"
-                  placeholder="Downtown Medical Associates"
-                />
-                {errors.businessName && (
-                  <p className="text-sm text-red-600 mt-1">{errors.businessName.message}</p>
-                )}
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="street">Street Address *</Label>
@@ -182,6 +171,23 @@ export default function BasicInfoContent({ onNext }: PageProps) {
                     <p className="text-sm text-red-600 mt-1">{errors.address.zipCode.message}</p>
                   )}
                 </div>
+              </div>
+              <div>
+                <Label htmlFor="websiteUrl">Website URL</Label>
+                <Input
+                  id="websiteUrl"
+                  {...register('websiteUrl', {
+                    pattern: {
+                      value: /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/,
+                      message: 'Please enter a valid website URL'
+                    }
+                  })}
+                  className="mt-1"
+                  placeholder="https://www.yourpractice.com"
+                />
+                {errors.websiteUrl && (
+                  <p className="text-sm text-red-600 mt-1">{errors.websiteUrl.message}</p>
+                )}
               </div>
             </div>
           </CardContent>

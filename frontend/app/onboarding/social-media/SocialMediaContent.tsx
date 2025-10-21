@@ -19,7 +19,6 @@ import {
 
 // Assuming this type is defined elsewhere in your project
 interface SocialMedia {
-  websiteUrl: string;
   platforms: {
     instagram: { connected: boolean; username: string; };
     facebook: { connected: boolean; pageId: string; };
@@ -39,7 +38,6 @@ export default function SocialMediaPage({ onNext, onBack }: PageProps) {
   const storedData = typeof window !== 'undefined' ? localStorage.getItem('onboardingData') : null;
   const initialData = storedData ? JSON.parse(storedData) as { socialMedia?: SocialMedia } : {};
   const initialSocialMediaData = initialData.socialMedia || {
-    websiteUrl: '',
     platforms: {
       instagram: { connected: false, username: '' },
       facebook: { connected: false, pageId: '' },

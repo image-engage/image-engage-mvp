@@ -228,6 +228,55 @@ export class PracticeService {
   }
 
   /**
+   * Finalizes the onboarding process by updating the practice with all collected data.
+   */
+  static async finalizeOnboarding(
+    practiceId: string,
+    onboardingData: any
+  ): Promise<ApiResponse<Practice>> {
+    try {
+      // Destructure from the nested basicInfo object sent by the frontend
+      const {
+        address, contactInfo, websiteUrl
+      } = onboardingData?.basicInfo || {};
+      
+      // Other fields might be at the top level or in other nested objects
+      const { brandColors } = onboardingData?.basicInfo || {};
+
+      const updatePayload: Partial<Practice> & { [key: string]: any } = {
+        address: address || null, // Ensure address is handled as an object or null
+        phone: contactInfo?.phone, // phone and email are inside contactInfo
+        email: contactInfo?.email,
+        website_url: websiteUrl,
+        branding_colors: brandColors,
+        isonboarded: true, // Mark onboarding as complete
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: updatedPractice, error } = await this.supabase
+        .from('practices')
+        .update(updatePayload)
+        .eq('id', practiceId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error finalizing onboarding:', error);
+        return { success: false, message2: 'Failed to update practice profile during finalization.' };
+      }
+
+      return {
+        success: true,
+        message2: 'Onboarding completed and practice profile updated successfully.',
+        data: updatedPractice as Practice,
+      };
+    } catch (error) {
+      console.error('Error finalizing onboarding:', error);
+      return { success: false, message2: 'Internal server error during onboarding finalization.' };
+    }
+  }
+
+  /**
    * Retrieves a practice by its ID.
    */
   static async getPracticeById(practiceId: string): Promise<ApiResponse<Practice>> {

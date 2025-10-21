@@ -9,18 +9,18 @@ import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import practiceRoutes from "./routes/practice.routes";
 import patientRoutes from "./routes/patient.routes";
-import consentRoutes from "./routes/consent.routes";
-import contentRoutes from "./routes/content.routes";
-import photoSessionRoutes from "./routes/photo-session.routes";
-import workflowRoutes from "./routes/workflow.routes";
-import uploadRoutes from "./routes/upload.routes";
-import mediaRoutes from "./routes/media";
-import mediaPosts from "./routes/media-posts.routes";
-import reportsRoutes from "./routes/reports";
-import completedSessionsRoutes from "./routes/completed-sessions.routes";
-import testSessionsRoutes from "./routes/test-sessions.routes";
-import dashboardRoutes from "./routes/dashboard.routes";
-import sessionRoutes from "./routes/session.routes";
+import consentRoutes from "./routes/consent.routes"; // Assuming this exists
+import contentRoutes from "./routes/content.routes"; // Assuming this exists
+import photoSessionRoutes from "./routes/photo-session.routes"; // Assuming this exists
+import workflowRoutes from "./routes/workflow.routes"; // Assuming this exists
+import uploadRoutes from "./routes/upload.routes"; // Assuming this exists
+import mediaRoutes from "./routes/media"; // Assuming this exists
+import mediaPosts from "./routes/media-posts.routes"; // Assuming this exists
+import reportsRoutes from "./routes/reports"; // Assuming this exists
+import completedSessionsRoutes from "./routes/completed-sessions.routes"; // Assuming this exists
+import testSessionsRoutes from "./routes/test-sessions.routes"; // Assuming this exists
+import dashboardRoutes from "./routes/dashboard.routes"; // Assuming this exists
+import sessionRoutes from "./routes/session.routes"; // Assuming this exists
 
 // Load environment variables
 dotenv.config();

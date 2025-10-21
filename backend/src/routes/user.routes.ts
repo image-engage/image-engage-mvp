@@ -5,7 +5,7 @@ import { authenticateToken } from '../middleware/auth';
 const router = Router();
 
 // Protected routes
-router.use(authenticateToken);
+router.use(authenticateToken); // Apply middleware to all routes in this file
 
 router.get('/profile', UserController.getProfile);
 router.put('/profile', UserController.updateProfile);

@@ -1,11 +1,11 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { PracticeService } from '../services/practice.service';
 //import { GoogleDriveService } from '../services/google-drive.service';
 import { ApiResponse } from '../types';
 
 export class PracticeController {
-  static async getProfile(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
+  static async getProfile(req: AuthenticatedRequest, res: Response<ApiResponse>, next: NextFunction): Promise<void> {
     try {
       const practiceId = req.practiceId!;
       const result = await PracticeService.getPracticeById(practiceId);
@@ -17,15 +17,11 @@ export class PracticeController {
 
       res.json(result);
     } catch (error) {
-      console.error('Get profile error:', error);
-      res.status(500).json({
-        success: false,
-        message2: 'Internal server error'
-      });
+      next(error);
     }
   }
 
-  static async updateProfile(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
+  static async updateProfile(req: AuthenticatedRequest, res: Response<ApiResponse>, next: NextFunction): Promise<void> {
     try {
       const practiceId = req.practiceId!;
       const { name, email, phone, branding_colors, social_media, isonboarded } = req.body;
@@ -42,15 +38,31 @@ export class PracticeController {
 
       res.json(result);
     } catch (error) {
-      console.error('Update profile error:', error);
-      res.status(500).json({
-        success: false,
-        message2: 'Internal server error'
-      });
+      next(error);
     }
   }
 
-  // static async setupGoogleDriveFolders(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
+  static async completeOnboarding(req: AuthenticatedRequest, res: Response<ApiResponse>, next: NextFunction): Promise<void> {
+    try {
+      const practiceId = req.practiceId!;
+      const onboardingData = req.body;
+
+      // Here you would also handle file uploads, e.g., the logo.
+      // For now, we focus on updating the text/JSON data.
+
+      const result = await PracticeService.finalizeOnboarding(practiceId, onboardingData);
+
+      if (!result.success) {
+        res.status(400).json(result);
+        return;
+      }
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+  // static async setupGoogleDriveFolders(req: AuthenticatedRequest, res: Response<ApiResponse>, next: NextFunction): Promise<void> {
   //   try {
   //     const practiceId = req.practiceId!;
   //     const { refreshToken, practiceName } = req.body;
@@ -84,15 +96,11 @@ export class PracticeController {
   //       data: { folders }
   //     });
   //   } catch (error) {
-  //     console.error('Setup folders error:', error);
-  //     res.status(500).json({
-  //       success: false,
-  //       message2: 'Failed to setup Google Drive folders'
-  //     });
+  //     next(error);
   //   }
   // }
 
-  static async getFolderStructure(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
+  static async getFolderStructure(req: AuthenticatedRequest, res: Response<ApiResponse>, next: NextFunction): Promise<void> {
     try {
       const practiceId = req.practiceId!;
       
@@ -115,11 +123,7 @@ export class PracticeController {
         data: mockStructure
       });
     } catch (error) {
-      console.error('Get folder structure error:', error);
-      res.status(500).json({
-        success: false,
-        message2: 'Internal server error'
-      });
+      next(error);
     }
   }
 }
