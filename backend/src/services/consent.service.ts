@@ -549,18 +549,25 @@ export class ConsentService {
 
       // @ts-ignore
       const patientId = consent.patients.id;
-      // @ts-ignore
-      const firstName = consent.patients.first_name;
-      // @ts-ignore
-      const lastName = consent.patients.last_name;
+
+      const { data: media, error: err } = await supabase
+        .from('media_files')
+        .select(`storage_url, storage_path`)
+        .eq('patient_id', patientId)
+        .eq('practice_id', practiceId)
+        .single();
       
-      // Construct the PDF path in Supabase storage
-      const pdfPath = `${practiceId}/_ConsentForms/Before/${patientId}/consent_${firstName}_${lastName}_${Date.parse(consent.created_at)}.pdf`;
-      
+      if (err || !media) {
+        return {
+          success: false,
+          message2: 'Consent form not found'
+        };
+      }
+
       // Get the public URL for the PDF
       const { data: urlData } = supabase.storage
         .from('photo-sessions')
-        .getPublicUrl(pdfPath);
+        .getPublicUrl(media.storage_path);
 
       if (!urlData?.publicUrl) {
         return {
