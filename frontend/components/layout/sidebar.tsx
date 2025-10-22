@@ -127,7 +127,7 @@ export function Sidebar() {
         <div className="flex flex-col items-center px-6 py-6 border-b border-gray-100 bg-gray-50/50">
           <div className="p-1.5 rounded-xl border border-blue-100 bg-white shadow-sm flex items-center justify-center">
             <img
-              src="/image-engage-logo.png"
+              src="/EmageSmile.png"
               alt="EmageSmile AI Logo"
               className="h-12 w-12 object-contain"
             />

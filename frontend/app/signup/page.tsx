@@ -139,9 +139,9 @@ export default function SignupPage() {
             <div className="flex justify-center mb-2">
               <div className="p-2 rounded-xl border border-gray-100 shadow-inner">
                 <img
-                  src="/image-engage-logo.png"
-                  alt="EmageSmile AI Logo"
-                  className="h-16 w-16 object-contain"
+                  src="/EmageSmile.png"
+                  alt="EmageSmile Logo"
+                  className="h-20 w-20 object-contain"
                 />
               </div>
             </div>
