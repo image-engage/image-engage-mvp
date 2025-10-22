@@ -118,7 +118,7 @@ export class PDFReportService {
       beforeImages,
       afterImages,
       clinicInfo: {
-        name: 'Image Engage Clinic',
+        name: 'EmageSmile Clinic',
         address: '123 Dental Street, City, State 12345',
         phone: '(555) 123-4567'
       }

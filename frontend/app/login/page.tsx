@@ -85,13 +85,13 @@ export default function LoginPage() {
               <div className="p-2 rounded-xl border border-gray-100 shadow-inner">
                 <img
                   src="/image-engage-logo.png"
-                  alt="Image Engage AI Logo"
+                  alt="EmageSmile AI Logo"
                   className="h-16 w-16 object-contain"
                 />
               </div>
             </div>
             <CardTitle className="text-3xl font-extrabold text-gray-900">
-              Image Engage AI
+              EmageSmile AI
             </CardTitle>
             <CardDescription className="text-gray-500 text-base">
               Sign in to your account
@@ -208,7 +208,7 @@ export default function LoginPage() {
             
             {/* Footer Text */}
             <p className="text-center text-xs text-gray-400 pt-4">
-                © {new Date().getFullYear()} Image Engage AI. All rights reserved.
+                © {new Date().getFullYear()} EmageSmile AI. All rights reserved.
             </p>
           </CardContent>
         </Card>

@@ -670,7 +670,7 @@ export default function MediaUploadPage() {
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div className="text-sm space-y-2">
-                                    <div className="font-medium text-gray-900 mb-3">ImageEngageAI - {folderStructure.practiceName}</div>
+                                    <div className="font-medium text-gray-900 mb-3">EmageSmileAI - {folderStructure.practiceName}</div>
                                     <div className="space-y-1 ml-4">
                                         <div className="text-gray-600">📁 _Consents/</div>
                                         <div className="text-gray-600">📁 _RawPhotos/</div>

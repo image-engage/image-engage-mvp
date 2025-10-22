@@ -23,7 +23,7 @@ export default function OnboardingContainer({ children, currentStep, completedSt
           {/* ... all your existing UI code ... */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              Welcome to Image Engage
+              Welcome to EmageSmile
             </h1>
             <p className="text-slate-600">
               Let's get your practice set up for social media success

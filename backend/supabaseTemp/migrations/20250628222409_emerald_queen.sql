@@ -1,5 +1,5 @@
 /*
-  # Initial Schema for ImageEngage AI
+  # Initial Schema for EmageSmile AI
 
   1. New Tables
     - `users`

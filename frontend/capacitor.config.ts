@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.imageengage.app',
-  appName: 'imageengage-admin',
+  appId: 'com.EmageSmile.app',
+  appName: 'EmageSmile-admin',
   webDir: 'out',
   plugins: {
     Camera: {

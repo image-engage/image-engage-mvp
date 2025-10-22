@@ -1,6 +1,6 @@
-# ImageEngage AI Backend API
+# EmageSmile AI Backend API
 
-A comprehensive Node.js/TypeScript backend API for the ImageEngage AI dental practice platform.
+A comprehensive Node.js/TypeScript backend API for the EmageSmile AI dental practice platform.
 
 ## Features
 

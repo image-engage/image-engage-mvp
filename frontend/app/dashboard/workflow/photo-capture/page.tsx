@@ -78,10 +78,10 @@ const PHOTO_LABELS: Record<string, string> = {
   'upper': 'Upper',
   'upper-occlusal': 'Upper Occlusal',
   'lower-occlusal': 'Lower Occlusal',
-  'face-closed-lips': 'Face Closed Lips',
-  'face-smile': 'Face Smile',
-  'right-profile': 'Right Profile',
-  'left-profile': 'Left Profile',
+  'face-closed-lips': 'Headshot Face Closed Lips',
+  'face-smile': 'Headshot Face Smile',
+  'right-profile': 'Headshot Right Profile',
+  'left-profile': 'Headshot Left Profile',
 };
 // --- End Constants ---
 
@@ -764,7 +764,7 @@ export default function PhotoCapture() {
 
                       {/* Quality Badge on the tile itself */}
                       {isStaged && isStaged.qualityStatus === 'PASS' && !isChecking && (
-                        <Badge variant="secondary" className="absolute top-1 left-1 bg-green-100 text-green-800 text-xs">Good</Badge>
+                        <Badge variant="secondary" className="absolute top-1 left-1 bg-green-100 text-green-800 text-xs">Pass</Badge>
                       )}
                       
                       {/* Remove/Enlarge button for staged photos */}
@@ -856,7 +856,7 @@ export default function PhotoCapture() {
 
                       {/* Quality Badge on the tile itself */}
                       {isStagedOptional && isStagedOptional.qualityStatus === 'PASS' && !isChecking && (
-                        <Badge variant="secondary" className="absolute top-1 left-1 bg-green-100 text-green-800 text-xs">Good</Badge>
+                        <Badge variant="secondary" className="absolute top-1 left-1 bg-green-100 text-green-800 text-xs">Pass</Badge>
                       )}
                       
                       {/* Remove/Enlarge button for staged photos */}
@@ -963,12 +963,12 @@ export default function PhotoCapture() {
                     />
                     <Badge className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs">{PHOTO_LABELS[photo.type]}</Badge>
                     {photo.qualityStatus === 'PASS' && (
-                      <Badge variant="secondary" className="absolute top-2 left-2 bg-green-100 text-green-800 text-xs">Good Quality</Badge>
+                      <Badge variant="secondary" className="absolute top-2 left-2 bg-green-100 text-green-800 text-xs">Passes Quality Check</Badge>
                     )}
                     {photo.qualityStatus === 'FAIL' && (
                       <Badge variant="destructive" className="absolute top-2 left-2 text-xs">
                         <AlertTriangle className="h-3 w-3 mr-1" />
-                        Poor Quality
+                        Poor Quality - Consider Retake
                       </Badge>
                     )}
                     <Button
@@ -1001,12 +1001,12 @@ export default function PhotoCapture() {
                     />
                     <Badge className="absolute bottom-2 left-2 bg-purple-600 text-white text-xs">Additional Photo</Badge>
                     {photo.qualityStatus === 'PASS' && (
-                      <Badge variant="secondary" className="absolute top-2 left-2 bg-green-100 text-green-800 text-xs">Good Quality</Badge>
+                      <Badge variant="secondary" className="absolute top-2 left-2 bg-green-100 text-green-800 text-xs">Passes Quality Check</Badge>
                     )}
                     {photo.qualityStatus === 'FAIL' && (
                       <Badge variant="destructive" className="absolute top-2 left-2 text-xs">
                         <AlertTriangle className="h-3 w-3 mr-1" />
-                        Poor Quality
+                        Poor Quality - Consider Retake
                       </Badge>
                     )}
                     <Button

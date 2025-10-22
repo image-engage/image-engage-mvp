@@ -6,7 +6,7 @@ dotenv.config();
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
-  console.log(`🚀 ImageEngageAI Backend API server running on port ${PORT}`);
+  console.log(`🚀 EmageSmileAI Backend API server running on port ${PORT}`);
   console.log(`📚 Health check: http://localhost:${PORT}/health`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });

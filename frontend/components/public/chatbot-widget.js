@@ -2,7 +2,7 @@
   'use strict';
 
   // Configuration
-  const config = window.ImageEngageChatbot || {
+  const config = window.EmageSmileChatbot || {
     apiUrl: '/api/chatbot/chat',
     position: 'bottom-right',
     primaryColor: '#3B82F6',
@@ -13,7 +13,7 @@
 
   // Widget HTML
   const widgetHTML = `
-    <div id="imageengage-chatbot-container" style="
+    <div id="EmageSmile-chatbot-container" style="
       position: fixed;
       ${config.position.includes('bottom') ? 'bottom: 20px;' : 'top: 20px;'}
       ${config.position.includes('right') ? 'right: 20px;' : 'left: 20px;'}

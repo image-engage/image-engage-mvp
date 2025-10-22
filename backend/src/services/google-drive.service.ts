@@ -26,7 +26,7 @@
 //       const drive = getDriveClient(decryptedToken);
 
 //       // Create root folder
-//       const rootFolderName = `ImageEngageAI - ${practiceName}`;
+//       const rootFolderName = `EmageSmileAI - ${practiceName}`;
 //       const rootFolder = await drive.files.create({
 //         requestBody: {
 //           name: rootFolderName,

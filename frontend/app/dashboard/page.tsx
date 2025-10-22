@@ -101,15 +101,11 @@ export default function DashboardPage() {
         }
         setKpiLoading(false);
 
-        // Mock user data for now
-        const mockData: UserProfile = {
-          first_name: 'Dr.',
-          last_name: 'Patel',
-          practice_data: {
-            name: 'Dental Associates of Springfield',
-          },
-        };
-        setUserData(mockData);
+        // Fetch user profile data to get practice name
+        const userProfileResponse = await api.get<UserProfile>('/user/profile', token);
+        if (userProfileResponse) {
+          setUserData(userProfileResponse);
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
         setKpiLoading(false);
@@ -131,7 +127,7 @@ export default function DashboardPage() {
         <p className="text-xl text-gray-500 mt-1">
           {isLoading ? 'Fetching practice data...' : 
            userData?.practice_data ? `${userData.practice_data.name} Dashboard Overview` : 
-           'ImageEngage AI Admin Console'
+           'EmageSmile AI Admin Console'
           }
         </p>
       </div>

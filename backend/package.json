@@ -1,7 +1,7 @@
 {
-  "name": "imageengage-api",
+  "name": "EmageSmile-api",
   "version": "1.0.0",
-  "description": "ImageEngage AI Backend API",
+  "description": "EmageSmile AI Backend API",
   "main": "dist/server.js",
   "scripts": {
     "dev": "npx nodemon src/server.ts",
@@ -15,7 +15,7 @@
     "typescript",
     "express"
   ],
-  "author": "ImageEngage AI",
+  "author": "EmageSmile AI",
   "license": "MIT",
   "dependencies": {
     "@supabase/supabase-js": "^2.53.0",

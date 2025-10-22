@@ -58,7 +58,7 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "ImageEngageAI Backend API is running",
+    message: "EmageSmileAI Backend API is running",
     timestamp: new Date().toISOString(),
     version: "1.0.0",
   });
