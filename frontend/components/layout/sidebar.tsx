@@ -32,7 +32,7 @@ const secondaryNavigation: NavItem[] = [
 ];
 
 const settingsNavigation: NavItem[] = [
-  { name: 'Settings', href: '/dashboard/setup-settings', icon: Settings },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   // { name: 'Resources', href: '/dashboard/resources', icon: BookOpen },
 ];
 

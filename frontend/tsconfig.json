@@ -24,6 +24,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["frontend/next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/dashboard/setup-settings/team-roles"],
+  "include": ["frontend/next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/dashboard/setup-settings/team-roles", "../backend/src/services/settings.service.ts", "../backend/src/controllers/settings.controller.ts", "../backend/src/routes/settings.routes.ts"],
   "exclude": ["node_modules"]
 }

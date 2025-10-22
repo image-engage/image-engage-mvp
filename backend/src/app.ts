@@ -21,6 +21,7 @@ import completedSessionsRoutes from "./routes/completed-sessions.routes"; // Ass
 import testSessionsRoutes from "./routes/test-sessions.routes"; // Assuming this exists
 import dashboardRoutes from "./routes/dashboard.routes"; // Assuming this exists
 import sessionRoutes from "./routes/session.routes"; // Assuming this exists
+import settingsRoutes from "./routes/settings.routes"; // Assuming this exists
 
 // Load environment variables
 dotenv.config();
@@ -80,6 +81,7 @@ app.use("/api/completed-sessions", testSessionsRoutes);
 app.use("/api/completed-sessions-old", completedSessionsRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/sessions", sessionRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // 404 handler
 app.use("*", (req, res) => {
