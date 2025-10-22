@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Camera, ArrowLeft, CheckCircle2, Loader2, UploadCloud, XCircle, Plus, Video, Pause, Clock } from 'lucide-react';
+import { Camera, ArrowLeft, CheckCircle2, Loader2, UploadCloud, XCircle, Plus, Video, Pause, Clock, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { api, ApiResponse } from '@/components/lib/api';
@@ -27,6 +27,8 @@ interface StagedMedia {
   previewUrl: string;
   type: string;
   category: 'before' | 'after';
+  qualityStatus?: "PASS" | "FAIL";
+  acceptedPoorQuality?: boolean;
 }
 
 interface StagedVideo {
@@ -47,6 +49,15 @@ interface PatientSession {
   afterPhotos: CapturedPhoto[];
   videos: any[];
   createdAt: string;
+}
+
+interface QualityCheckResponse {
+  status: "PASS" | "FAIL";
+  reason: string;
+  data: {
+    isBlurry: boolean;
+    focusScore: number;
+  };
 }
 
 interface Practice {
@@ -99,6 +110,7 @@ export default function PhotoCapture() {
   const [currentPhotoType, setCurrentPhotoType] = useState<{category: 'before' | 'after', type: string} | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [checkingQualityFor, setCheckingQualityFor] = useState<string | null>(null);
   const videoRecordRef = useRef<HTMLVideoElement>(null);
 
   // --- Utility & State Management Functions (Defined or Replaced from original code) ---
@@ -145,9 +157,51 @@ export default function PhotoCapture() {
     };
   }, [stream]);
 
+  const checkImageQuality = async (imageFile: File): Promise<QualityCheckResponse | null> => {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+
+    console.log('📸 Calling checkImageQuality API...');
+    try {
+      toast.loading('Analyzing image quality...');
+      const result: ApiResponse<QualityCheckResponse> = await api.postFormData('/photo-session/check-quality', formData);
+      toast.dismiss();
+
+      console.log('✅ API Response Received:', result);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      return null;
+    } catch (error) {
+      toast.dismiss();
+      console.error('Image quality check failed:', error);
+      toast.error('Could not analyze image quality. Please try again.');
+      return null;
+    }
+  };
+
+  const handlePhotoCaptured = async (file: File, type: string, category: 'before' | 'after') => {
+    setCheckingQualityFor(type);
+    const qualityResult = await checkImageQuality(file);
+    const status = qualityResult?.status || 'PASS'; // Default to PASS if check fails
+
+    if (status === 'FAIL') {
+      toast.warning('Image Quality Alert', {
+        description: `${qualityResult?.reason || 'Image has quality issues.'}. You can retake it or accept it.`,
+        duration: 8000,
+      });
+    } else {
+      toast.success('Image Quality Check Passed', { description: 'The photo is clear and ready to be staged.' });
+    }
+    // Always stage the photo, but with its quality status
+    stagePhoto(file, type, category, status);
+    // Add a small delay to allow the user to see the "Staged" state before the loader disappears
+    setTimeout(() => setCheckingQualityFor(null), 500);
+  };
+
   const updatePatientSession = (updatedSession: PatientSession) => {
     const sessions: PatientSession[] = JSON.parse(localStorage.getItem('patientSessions') || '[]');
-    const sessionIndex = sessions.findIndex(s => s.sessionId === updatedSession.sessionId);
+    const sessionIndex = sessions.findIndex(s => s.sessionId === updatedSession.sessionId); 
     
     if (sessionIndex !== -1) {
       sessions[sessionIndex] = updatedSession;
@@ -170,19 +224,7 @@ export default function PhotoCapture() {
           const response = await fetch(image.dataUrl);
           const blob = await response.blob();
           const file = new File([blob], `${type}-${Date.now()}.jpg`, { type: 'image/jpeg' });
-          
-          const newStagedPhoto: StagedMedia = {
-            file,
-            previewUrl: image.dataUrl,
-            type,
-            category,
-          };
-          
-          if (type === 'additional') {
-            setStagedAdditionalPhotos(prev => [...prev, newStagedPhoto]);
-          } else {
-            setStagedRequiredPhotos(prev => [...prev.filter(p => p.category !== category || p.type !== type), newStagedPhoto]);
-          }
+          await handlePhotoCaptured(file, type, category);
         }
       } catch (error) {
         console.error('Error taking photo:', error);
@@ -225,21 +267,8 @@ export default function PhotoCapture() {
       canvas.toBlob((blob) => {
         if (blob) {
           const file = new File([blob], `${currentPhotoType.type}-${Date.now()}.jpg`, { type: 'image/jpeg' });
-          const newStagedPhoto: StagedMedia = {
-            file,
-            previewUrl: URL.createObjectURL(file),
-            type: currentPhotoType.type,
-            category: currentPhotoType.category,
-          };
-          
-          if (currentPhotoType.type === 'additional') {
-            setStagedAdditionalPhotos(prev => [...prev, newStagedPhoto]);
-          } else {
-            setStagedRequiredPhotos(prev => [...prev.filter(p => p.category !== currentPhotoType.category || p.type !== currentPhotoType.type), newStagedPhoto]);
-          }
-          
+          handlePhotoCaptured(file, currentPhotoType.type, currentPhotoType.category);
           closeCamera();
-          toast.success(`${PHOTO_LABELS[currentPhotoType.type] || 'Photo'} staged successfully.`);
         }
       }, 'image/jpeg');
     }
@@ -371,31 +400,50 @@ export default function PhotoCapture() {
     toast.info('Video removed from staging.');
   };
 
-  const handleRequiredFileSelect = (event: React.ChangeEvent<HTMLInputElement>, category: 'before' | 'after', type: string) => {
+  const stagePhoto = (file: File, type: string, category: 'before' | 'after', qualityStatus: "PASS" | "FAIL") => {
+    const newStagedPhoto: StagedMedia = {
+      file,
+      previewUrl: URL.createObjectURL(file),
+      type,
+      category,
+      qualityStatus,
+      acceptedPoorQuality: qualityStatus === 'PASS', // Automatically accept good photos
+    };
+
+    if (type === 'additional') {
+      setStagedAdditionalPhotos(prev => [...prev, newStagedPhoto]);
+    } else {
+      setStagedRequiredPhotos(prev => [...prev.filter(p => p.category !== category || p.type !== type), newStagedPhoto]);
+    }
+    toast.success(`${PHOTO_LABELS[type] || 'Photo'} staged successfully.`);
+  };
+  
+  const handleAcceptPoorQuality = (photoToAccept: StagedMedia) => {
+    const updatePhoto = (photos: StagedMedia[]) => 
+      photos.map(p => p.previewUrl === photoToAccept.previewUrl ? { ...p, acceptedPoorQuality: true } : p);
+
+    if (photoToAccept.type === 'additional') {
+      setStagedAdditionalPhotos(updatePhoto);
+    } else {
+      setStagedRequiredPhotos(updatePhoto);
+    }
+    toast.info(`Accepted photo with ${photoToAccept.qualityStatus} quality.`);
+  };
+
+
+  const handleRequiredFileSelect = async (event: React.ChangeEvent<HTMLInputElement>, category: 'before' | 'after', type: string) => {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
-      const newStagedPhoto: StagedMedia = {
-        file,
-        previewUrl: URL.createObjectURL(file),
-        type,
-        category,
-      };
-      setStagedRequiredPhotos(prev => [...prev.filter(p => p.category !== category || p.type !== type), newStagedPhoto]);
-      toast.success(`${PHOTO_LABELS[type]} uploaded and staged.`);
+      await handlePhotoCaptured(file, type, category);
     }
   };
 
-  const handleAdditionalFileSelect = (event: React.ChangeEvent<HTMLInputElement>, category: 'before' | 'after') => {
+  const handleAdditionalFileSelect = async (event: React.ChangeEvent<HTMLInputElement>, category: 'before' | 'after') => {
     if (event.target.files && event.target.files.length > 0) {
       const files = Array.from(event.target.files);
-      const newStagedPhotos: StagedMedia[] = files.map(file => ({
-        file,
-        previewUrl: URL.createObjectURL(file),
-        type: 'additional',
-        category,
-      }));
-      setStagedAdditionalPhotos(prev => [...prev, ...newStagedPhotos]);
-      toast.success(`${newStagedPhotos.length} additional photos staged.`);
+      for (const file of files) {
+        await handlePhotoCaptured(file, 'additional', category);
+      }
     }
   };
 
@@ -473,11 +521,9 @@ export default function PhotoCapture() {
 
       const updatedSession = {
         ...patientSession,
-        currentStep: currentStep === 'before' ? 'after' as WorkflowStep : 'after' as WorkflowStep,
-        ...(currentStep === 'before' 
-          ? { beforePhotos: updatedPhotos }
-          : { afterPhotos: updatedPhotos }
-        ),
+        currentStep: currentStep === 'before' ? 'after' : ('complete' as WorkflowStep),
+        beforePhotos: currentStep === 'before' ? updatedPhotos : patientSession.beforePhotos,
+        afterPhotos: currentStep === 'after' ? updatedPhotos : patientSession.afterPhotos,
         videos: updatedVideos
       };
 
@@ -558,7 +604,8 @@ export default function PhotoCapture() {
   };
 
   const getStagedPhotoForType = (category: 'before' | 'after', type: string) => {
-    return stagedRequiredPhotos.find(p => p.category === category && p.type === type);
+    const allStagedPhotos = [...stagedRequiredPhotos, ...stagedAdditionalPhotos];
+    return allStagedPhotos.find(p => p.category === category && p.type === type);
   };
 
   const getExistingPhotosForType = (category: 'before' | 'after', type: string) => {
@@ -621,6 +668,11 @@ export default function PhotoCapture() {
   const requiredCompleted = getProgressValue() === 100;
 
 
+    const hasUnacceptedPoorQuality = [...stagedRequiredPhotos, ...stagedAdditionalPhotos]
+      .filter(p => p.category === currentStep)
+      .some(p => p.qualityStatus === 'FAIL' && !p.acceptedPoorQuality);
+
+
   return (
     <div className="min-h-screen bg-gray-100 pb-28">
       {/* IMPROVEMENT: Consolidated Header with Progress */}
@@ -678,6 +730,7 @@ export default function PhotoCapture() {
                 const isExisting = getExistingPhotosForType(currentStep, type);
                 const isStaged = getStagedPhotoForType(currentStep, type);
                 const hasPhoto = isExisting || isStaged;
+                const isChecking = checkingQualityFor === type;
                 
                 return (
                   <div key={type} className="space-y-2">
@@ -685,23 +738,34 @@ export default function PhotoCapture() {
                       className={`p-4 rounded-lg flex flex-col items-center justify-center space-y-2 transition-all duration-200 relative ${
                         isExisting
                           ? 'bg-green-500/10 border border-green-400'
-                          : isStaged 
+                          : isStaged
                             ? 'bg-blue-500/10 border border-blue-400'
                             : 'bg-white border-2 border-dashed border-gray-300 hover:border-blue-500 cursor-pointer'
-                      }`}
-                      onClick={() => { if (!hasPhoto) startCamera(currentStep, type); }}
+                      } ${isChecking ? 'cursor-wait' : ''}`}
+                      onClick={() => { if (!hasPhoto && !isChecking) startCamera(currentStep, type); }}
                     >
-                      {hasPhoto ? (
+                      {isChecking ? (
+                        <>
+                          <Loader2 className="h-8 w-8 text-gray-500 animate-spin" />
+                          <p className="text-center font-medium text-sm text-gray-900">{PHOTO_LABELS[type]}</p>
+                          <p className="text-xs text-gray-500">Checking...</p>
+                        </>
+                      ) : hasPhoto ? (
                         <CheckCircle2 className={`h-8 w-8 ${isExisting ? 'text-green-600' : 'text-blue-600'}`} />
                       ) : (
                         <Camera className="h-8 w-8 text-gray-500" />
                       )}
-                      <p className={`text-center font-medium text-sm text-gray-900`}>
-                        {PHOTO_LABELS[type]}
-                      </p>
-                      <p className={`text-xs ${isExisting ? 'text-green-600' : isStaged ? 'text-blue-600' : 'text-red-500'}`}>
-                        {isExisting ? 'Completed' : isStaged ? 'Staged' : 'Tap to Capture'}
-                      </p>
+                      {!isChecking && (
+                        <>
+                          <p className={`text-center font-medium text-sm text-gray-900`}>{PHOTO_LABELS[type]}</p>
+                          <p className={`text-xs ${isExisting ? 'text-green-600' : isStaged ? 'text-blue-600' : 'text-red-500'}`}>{isExisting ? 'Completed' : isStaged ? 'Staged' : 'Tap to Capture'}</p>
+                        </>
+                      )}
+
+                      {/* Quality Badge on the tile itself */}
+                      {isStaged && isStaged.qualityStatus === 'PASS' && !isChecking && (
+                        <Badge variant="secondary" className="absolute top-1 left-1 bg-green-100 text-green-800 text-xs">Good</Badge>
+                      )}
                       
                       {/* Remove/Enlarge button for staged photos */}
                       {isStaged && (
@@ -727,7 +791,7 @@ export default function PhotoCapture() {
                     </div>
                     
                     {/* Upload button outside the box */}
-                    {!hasPhoto && (
+                    {!hasPhoto && !isChecking && (
                         <>
                         <input
                             type="file"
@@ -755,39 +819,51 @@ export default function PhotoCapture() {
             <h3 className="font-semibold text-lg text-gray-700 border-b pb-2 mt-8">Optional Photos (Suggested)</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {OPTIONAL_PHOTO_TYPES.map(type => {
-                const isExisting = getExistingPhotosForType(currentStep, type);
-                const isStaged = getStagedPhotoForType(currentStep, type);
-                const hasPhoto = isExisting || isStaged;
+                const isExistingOptional = getExistingPhotosForType(currentStep, type);
+                const isStagedOptional = getStagedPhotoForType(currentStep, type);
+                const hasPhoto = isExistingOptional || isStagedOptional;
+                const isChecking = checkingQualityFor === type;
                 
                 return (
                   <div key={type} className="space-y-2">
                     <div 
                       className={`p-4 rounded-lg flex flex-col items-center justify-center space-y-2 transition-all duration-200 relative ${
-                        isExisting
+                        isExistingOptional
                           ? 'bg-green-500/10 border border-green-400'
-                          : isStaged 
+                          : isStagedOptional
                             ? 'bg-blue-500/10 border border-blue-400'
                             : 'bg-white border-2 border-dashed border-gray-300 hover:border-purple-500 cursor-pointer'
-                      }`}
-                      onClick={() => { if (!hasPhoto) startCamera(currentStep, type); }}
+                      } ${isChecking ? 'cursor-wait' : ''}`}
+                      onClick={() => { if (!hasPhoto && !isChecking) startCamera(currentStep, type); }}
                     >
-                      {hasPhoto ? (
-                        <CheckCircle2 className={`h-8 w-8 ${isExisting ? 'text-green-600' : 'text-blue-600'}`} />
+                      {isChecking ? (
+                        <>
+                          <Loader2 className="h-8 w-8 text-gray-500 animate-spin" />
+                          <p className="text-center font-medium text-sm text-gray-900">{PHOTO_LABELS[type]}</p>
+                          <p className="text-xs text-gray-500">Checking...</p>
+                        </>
+                      ) : hasPhoto ? (
+                        <CheckCircle2 className={`h-8 w-8 ${isExistingOptional ? 'text-green-600' : 'text-blue-600'}`} />
                       ) : (
                         <Camera className="h-8 w-8 text-gray-500" />
                       )}
-                      <p className={`text-center font-medium text-sm text-gray-900`}>
-                        {PHOTO_LABELS[type]}
-                      </p>
-                      <p className={`text-xs ${isExisting ? 'text-green-600' : isStaged ? 'text-blue-600' : 'text-purple-500'}`}>
-                        {isExisting ? 'Completed' : isStaged ? 'Staged' : 'Optional'}
-                      </p>
+                      {!isChecking && (
+                        <>
+                          <p className={`text-center font-medium text-sm text-gray-900`}>{PHOTO_LABELS[type]}</p>
+                          <p className={`text-xs ${isExistingOptional ? 'text-green-600' : isStagedOptional ? 'text-blue-600' : 'text-purple-500'}`}>{isExistingOptional ? 'Completed' : isStagedOptional ? 'Staged' : 'Optional'}</p>
+                        </>
+                      )}
+
+                      {/* Quality Badge on the tile itself */}
+                      {isStagedOptional && isStagedOptional.qualityStatus === 'PASS' && !isChecking && (
+                        <Badge variant="secondary" className="absolute top-1 left-1 bg-green-100 text-green-800 text-xs">Good</Badge>
+                      )}
                       
                       {/* Remove/Enlarge button for staged photos */}
-                      {isStaged && (
+                      {isStagedOptional && (
                         <div className='absolute top-1 right-1 flex space-x-1'>
                           <Button
-                            onClick={(e) => { e.stopPropagation(); handleEnlargePhoto(isStaged.previewUrl); }}
+                            onClick={(e) => { e.stopPropagation(); handleEnlargePhoto(isStagedOptional.previewUrl); }}
                             size='icon'
                             variant='ghost'
                             className='h-7 w-7 text-white bg-gray-900/50 hover:bg-gray-800/70 p-1'
@@ -795,7 +871,7 @@ export default function PhotoCapture() {
                               <Plus className='h-4 w-4' />
                           </Button>
                           <Button
-                            onClick={(e) => { e.stopPropagation(); handleRemoveStagedPhoto(isStaged); }}
+                            onClick={(e) => { e.stopPropagation(); handleRemoveStagedPhoto(isStagedOptional); }}
                             size='icon'
                             variant='ghost'
                             className='h-7 w-7 text-white bg-red-500/80 hover:bg-red-600/90 p-1'
@@ -807,7 +883,7 @@ export default function PhotoCapture() {
                     </div>
                     
                     {/* Upload button outside the box */}
-                    {!hasPhoto && (
+                    {!hasPhoto && !isChecking && (
                         <>
                         <input
                             type="file"
@@ -886,12 +962,30 @@ export default function PhotoCapture() {
                       className="rounded-lg object-cover w-full h-full aspect-square"
                     />
                     <Badge className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs">{PHOTO_LABELS[photo.type]}</Badge>
+                    {photo.qualityStatus === 'PASS' && (
+                      <Badge variant="secondary" className="absolute top-2 left-2 bg-green-100 text-green-800 text-xs">Good Quality</Badge>
+                    )}
+                    {photo.qualityStatus === 'FAIL' && (
+                      <Badge variant="destructive" className="absolute top-2 left-2 text-xs">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Poor Quality
+                      </Badge>
+                    )}
                     <Button
                       onClick={(e) => { e.stopPropagation(); handleRemoveStagedPhoto(photo); }}
                       className="absolute top-2 right-2 p-1 h-auto w-auto rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <XCircle className="h-4 w-4" />
                     </Button>
+                    {photo.qualityStatus === 'FAIL' && !photo.acceptedPoorQuality && (
+                      <Button
+                        onClick={(e) => { e.stopPropagation(); handleAcceptPoorQuality(photo); }}
+                        className="absolute bottom-2 right-2 p-1 h-auto w-auto rounded-md bg-yellow-400 text-yellow-900 hover:bg-yellow-500 text-xs"
+                        size="sm"
+                      >
+                        Accept Anyway
+                      </Button>
+                    )}
                   </div>
                 ))}
                 
@@ -906,12 +1000,30 @@ export default function PhotoCapture() {
                       className="rounded-lg object-cover w-full h-full aspect-square"
                     />
                     <Badge className="absolute bottom-2 left-2 bg-purple-600 text-white text-xs">Additional Photo</Badge>
+                    {photo.qualityStatus === 'PASS' && (
+                      <Badge variant="secondary" className="absolute top-2 left-2 bg-green-100 text-green-800 text-xs">Good Quality</Badge>
+                    )}
+                    {photo.qualityStatus === 'FAIL' && (
+                      <Badge variant="destructive" className="absolute top-2 left-2 text-xs">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Poor Quality
+                      </Badge>
+                    )}
                     <Button
                       onClick={(e) => { e.stopPropagation(); handleRemoveStagedPhoto(photo); }}
                       className="absolute top-2 right-2 p-1 h-auto w-auto rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <XCircle className="h-4 w-4" />
                     </Button>
+                    {photo.qualityStatus === 'FAIL' && !photo.acceptedPoorQuality && (
+                      <Button
+                        onClick={(e) => { e.stopPropagation(); handleAcceptPoorQuality(photo); }}
+                        className="absolute bottom-2 right-2 p-1 h-auto w-auto rounded-md bg-yellow-400 text-yellow-900 hover:bg-yellow-500 text-xs"
+                        size="sm"
+                      >
+                        Accept Anyway
+                      </Button>
+                    )}
                   </div>
                 ))}
 
@@ -998,7 +1110,7 @@ export default function PhotoCapture() {
           
           <Button
             onClick={handleUploadPhotos}
-            disabled={isUploadButtonDisabled() || uploading}
+            disabled={isUploadButtonDisabled() || uploading || hasUnacceptedPoorQuality}
             className={`w-full md:w-auto transition-all duration-300 ${
                 isUploadButtonDisabled() 
                 ? 'bg-gray-400 cursor-not-allowed' 
@@ -1014,7 +1126,9 @@ export default function PhotoCapture() {
             {uploading 
                 ? 'Uploading Media...' 
                 : requiredCompleted 
-                    ? `Upload ${stepTitle} & Proceed`
+                    ? hasUnacceptedPoorQuality
+                      ? 'Accept Poor Quality Photos'
+                    : `Upload ${stepTitle} & Proceed`
                     : 'Complete Required Photos'
             }
           </Button>

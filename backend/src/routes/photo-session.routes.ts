@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { PhotoSessionController } from '../controllers/photo-session.controller';
+import { ImageController } from '../controllers/image.controller';
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
@@ -9,7 +10,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 // All routes for photo sessions require authentication
 router.use(authenticateToken);
 
-
+// Route to check image quality
+router.post('/check-quality', upload.single('image'), ImageController.checkQuality);
 
 router.post(
   '/upload-photos',
