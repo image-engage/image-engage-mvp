@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import jsPDF from 'jspdf';
 import { format as formatDate } from 'date-fns';
 import { toast } from 'sonner';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -22,6 +23,10 @@ import {
   Video, 
   CheckCircle,
   ChevronLeft, // 👈 NEW: Icon for mobile back button
+  Play, // 👈 NEW: Icon for Slideshow button
+  Pause, // 👈 NEW: Icon for Slideshow pause
+  ChevronRight, // 👈 NEW: Icon for Slideshow next
+  FileText, // 👈 NEW: Icon for PDF button
 } from "lucide-react";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -209,6 +214,9 @@ export default function PatientMediaDashboard() {
     const [dateRange, setDateRange] = useState<{ from?: Date, to?: Date }>({});
     const [activeMediaTab, setActiveMediaTab] = useState<MediaCategory | 'all'>('all');
     
+    const [isSlideshowVisible, setIsSlideshowVisible] = useState(false);
+    const [slideshowImages, setSlideshowImages] = useState<MediaFile[]>([]);
+
     // 👈 NEW: State to manage mobile view: 'list' (default/patient selection) or 'media' (gallery)
     const [mobileView, setMobileView] = useState<'list' | 'media'>('list');
 
@@ -353,6 +361,84 @@ export default function PatientMediaDashboard() {
       });
       toast.success(`${filesToDownload.length} files initiated download.`);
       setSelectedFilesForBulk([]);
+    };
+
+    const handleCreateSlideshow = () => {
+      const filesForSlideshow = mediaFiles.filter(
+          (m) => selectedFilesForBulk.includes(m.id) && m.fileType === 'image'
+      );
+
+      if (filesForSlideshow.length === 0) {
+          toast.error("No images selected to create a slideshow.");
+          return;
+      }
+
+      // Sort images by category ('before' then 'after') and then by date
+      filesForSlideshow.sort((a, b) => a.mediaCategory.localeCompare(b.mediaCategory) || a.uploadDate.getTime() - b.uploadDate.getTime());
+
+      setSlideshowImages(filesForSlideshow);
+      setIsSlideshowVisible(true);
+    };
+
+    const handleSaveToPdf = async () => {
+      if (!selectedPatient) {
+        toast.error("A patient must be selected.");
+        return;
+      }
+
+      const filesToProcess = mediaFiles.filter(
+        (m) => selectedFilesForBulk.includes(m.id) && m.fileType === 'image'
+      );
+
+      if (filesToProcess.length === 0) {
+        toast.error("No images selected to create a PDF.");
+        return;
+      }
+
+      toast.loading("Generating PDF...", { id: 'pdf-toast' });
+
+      try {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 10;
+
+        doc.setFontSize(18);
+        doc.text(`${selectedPatient.first_name} ${selectedPatient.last_name} - Media Report`, margin, margin + 5);
+        doc.setFontSize(12);
+        doc.text(`Generated on: ${formatDate(new Date(), 'PPP')}`, margin, margin + 12);
+
+        for (let i = 0; i < filesToProcess.length; i++) {
+          const file = filesToProcess[i];
+          if (i > 0) {
+            doc.addPage();
+          }
+
+          const img = new Image();
+          img.crossOrigin = "Anonymous"; // Required for cross-origin images
+          img.src = file.preview;
+
+          await new Promise((resolve, reject) => {
+            img.onload = () => {
+              const imgWidth = img.width;
+              const imgHeight = img.height;
+              const ratio = Math.min((pageWidth - margin * 2) / imgWidth, (pageHeight - margin * 2) / imgHeight);
+              const newWidth = imgWidth * ratio;
+              const newHeight = imgHeight * ratio;
+              const x = (pageWidth - newWidth) / 2;
+              const y = (pageHeight - newHeight) / 2;
+              doc.addImage(img, 'JPEG', x, y, newWidth, newHeight);
+              resolve(true);
+            };
+            img.onerror = reject;
+          });
+        }
+        doc.save(`${selectedPatient.last_name}_${selectedPatient.first_name}_Media.pdf`);
+        toast.success("PDF generated successfully!", { id: 'pdf-toast' });
+      } catch (error) {
+        console.error("PDF Generation Error:", error);
+        toast.error("Failed to generate PDF. One or more images could not be loaded.", { id: 'pdf-toast' });
+      }
     };
 
     const toggleSelectFile = (fileId: string) => {
@@ -511,6 +597,12 @@ export default function PatientMediaDashboard() {
                                             <div className="flex space-x-3">
                                                 <Button size="sm" variant="secondary" onClick={() => setSelectedFilesForBulk([])}><X className="h-4 w-4 mr-1" />Clear</Button> {/* Shorten button text */}
                                                 <Button size="sm" onClick={handleBulkDownload}><Download className="h-4 w-4 mr-1" />Download</Button> {/* Shorten button text */}
+                                                <Button size="sm" variant="outline" onClick={handleSaveToPdf}>
+                                                  <FileText className="h-4 w-4 mr-1" /> Save to PDF
+                                                </Button>
+                                                <Button size="sm" variant="default" onClick={handleCreateSlideshow} className="bg-green-600 hover:bg-green-700">
+                                                  <Play className="h-4 w-4 mr-1" /> Slideshow
+                                                </Button>
                                             </div>
                                         </div>
                                     ) : (
@@ -632,6 +724,74 @@ export default function PatientMediaDashboard() {
                     </DialogContent>
                 </Dialog>
             )}
+
+            {/* Slideshow Modal */}
+            {isSlideshowVisible && (
+                <Slideshow 
+                    images={slideshowImages} 
+                    isOpen={isSlideshowVisible} 
+                    onClose={() => setIsSlideshowVisible(false)} 
+                />
+            )}
         </div>
     );
 }
+
+// --- NEW: Slideshow Component ---
+const Slideshow = ({ images, isOpen, onClose }: { images: MediaFile[], isOpen: boolean, onClose: () => void }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(true);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+            if (e.key === 'Escape') onClose();
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, currentIndex]);
+
+    useEffect(() => {
+        if (isPlaying && isOpen) {
+            const timer = setTimeout(() => {
+                nextSlide();
+            }, 3000); // Change slide every 3 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [currentIndex, isPlaying, isOpen]);
+
+    const nextSlide = () => {
+        setCurrentIndex(prev => (prev + 1) % images.length);
+    };
+
+    const prevSlide = () => {
+        setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="relative w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                <img 
+                    src={images[currentIndex].preview} 
+                    alt={images[currentIndex].fileName} 
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in fade-in-50"
+                />
+                <Button onClick={onClose} variant="destructive" size="icon" className="absolute top-4 right-4 rounded-full h-10 w-10"><X className="h-5 w-5" /></Button>
+                <Button onClick={prevSlide} variant="secondary" size="icon" className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full h-12 w-12 opacity-70 hover:opacity-100"><ChevronLeft className="h-6 w-6" /></Button>
+                <Button onClick={nextSlide} variant="secondary" size="icon" className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full h-12 w-12 opacity-70 hover:opacity-100"><ChevronRight className="h-6 w-6" /></Button>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/50 p-2 rounded-full">
+                    <Button onClick={() => setIsPlaying(!isPlaying)} variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full">
+                        {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                    </Button>
+                    <p className="text-white text-sm font-medium">{currentIndex + 1} / {images.length}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
