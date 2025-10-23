@@ -39,7 +39,7 @@ const settingsNavigation: NavItem[] = [
 
 export function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [practiceName, setPracticeName] = useState('EmageSmile AI');
+  const [practiceName, setPracticeName] = useState('EmageSmile');
   const pathname = usePathname();
   const router = useRouter();
 
@@ -128,7 +128,7 @@ export function Sidebar() {
           <div className="p-1.5 rounded-xl border border-blue-100 bg-white shadow-sm flex items-center justify-center">
             <img
               src="/EmageSmile.png"
-              alt="EmageSmile AI Logo"
+              alt="EmageSmile Logo"
               className="h-12 w-12 object-contain"
             />
           </div>
@@ -175,7 +175,7 @@ export function Sidebar() {
           </Button>
           <div className="text-center">
             <p className="text-xs text-gray-400">
-              &copy; {new Date().getFullYear()} EmageSmile AI
+              &copy; {new Date().getFullYear()} EmageSmile
             </p>
             <p className="text-xs text-gray-400">
               Dental Marketing Platform

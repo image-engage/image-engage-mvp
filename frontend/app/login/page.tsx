@@ -91,7 +91,7 @@ export default function LoginPage() {
               </div>
             </div>
             <CardTitle className="text-3xl font-extrabold text-gray-900">
-              EmageSmile AI
+              EmageSmile
             </CardTitle>
             <CardDescription className="text-gray-500 text-base">
               Sign in to your account
@@ -208,7 +208,7 @@ export default function LoginPage() {
             
             {/* Footer Text */}
             <p className="text-center text-xs text-gray-400 pt-4">
-                © {new Date().getFullYear()} EmageSmile AI. All rights reserved.
+                © {new Date().getFullYear()} EmageSmile. All rights reserved.
             </p>
           </CardContent>
         </Card>

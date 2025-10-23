@@ -127,7 +127,7 @@ export default function DashboardPage() {
         <p className="text-xl text-gray-500 mt-1">
           {isLoading ? 'Fetching practice data...' : 
            userData?.practice_data ? `${userData.practice_data.name} Dashboard Overview` : 
-           'EmageSmile AI Admin Console'
+           'EmageSmile Admin Console'
           }
         </p>
       </div>

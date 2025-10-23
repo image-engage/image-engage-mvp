@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'EmageSmile AI - Admin Dashboard',
+  title: 'EmageSmile - Admin Dashboard',
   description: 'Dental practice patient engagement platform',
   viewport: {
     width: 'device-width',
