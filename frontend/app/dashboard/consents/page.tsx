@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Download, X, CheckCircle, FileText, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, Download, X, CheckCircle, FileText, ChevronLeft, ChevronRight, Loader2, View } from 'lucide-react';
 import { format } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from 'sonner';
@@ -82,25 +82,32 @@ export default function ConsentsPage() {
     setCurrentPage(1);
   };
 
-  const handleDownload = async (consent: PatientConsent) => {
+  const handleDownload = async (consent: PatientConsent, download: boolean = false) => {
     try {
       const token = localStorage.getItem('token');
       const response = await api.get(`/consents/${consent.id}/download`, token);
       
       if (response.success && response.data?.url) {
-        // Create a temporary link to download the PDF from Supabase
+        
         const a = document.createElement('a');
-        a.href = response.data.url;
+        if (download) {
+          // Fetch the file as a blob to force download
+          const fileResponse = await fetch(response.data.url);
+          const blob = await fileResponse.blob();
+          a.href = URL.createObjectURL(blob);
+        } else {
+          a.href = response.data.url;
+          a.target = '_blank';
+        }
         a.download = `consent_${consent.firstName}_${consent.lastName}.pdf`;
-        a.target = '_blank';
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
         
-        // Use setTimeout to ensure the click event is processed before removal
         setTimeout(() => {
           if (document.body.contains(a)) {
             document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
           }
         }, 100);
         
@@ -218,6 +225,13 @@ export default function ConsentsPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleDownload(consent)}
+                          >
+                            <View className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownload(consent, true)}
                           >
                             <Download className="h-4 w-4" />
                           </Button>
