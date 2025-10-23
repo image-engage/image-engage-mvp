@@ -1,6 +1,6 @@
 // src/services/photo-session.service.ts
 import { supabase } from '../config/database'; // Assuming this imports your Supabase client
-import { ApiResponse, PatientConsent, PhotoSession } from '../types';
+import { ApiResponse, PatientConsent, PhotoSession, MediaFile } from '../types';
 import { PatientService } from './patient.service'; // 👈 Import PatientService
 import { v4 as uuidv4 } from 'uuid';
 import { Express } from 'express'; // Import Express for Multer file type
@@ -146,6 +146,107 @@ export class PhotoSessionService {
       console.error('Error creating photo session and uploading photos:', error);
       // Return a consistent error message2
       return { success: false, message2: error.message || 'Internal server error during photo session creation.' };
+    }
+  }
+
+  /**
+   * Handles the upload of general, ad-hoc media not tied to a specific workflow.
+   *
+   * @param practiceId The ID of the dental practice.
+   * @param files An array of file objects to upload.
+   * @param patientId The optional ID of the patient to associate the media with.
+   * @param descriptions An array of descriptions corresponding to each file.
+   * @param mediaTypes An array of media types ('photo' or 'video') for each file.
+   * @returns An ApiResponse indicating the result of the operation.
+   */
+  static async uploadGeneralMedia(
+    practiceId: string,
+    files: Express.Multer.File[],
+    patientId: string | null,
+    descriptions: string[],
+    mediaTypes: string[]
+  ): Promise<ApiResponse> {
+    try {
+      const patientPhotoId = `adhoc_${uuidv4()}`; // A unique identifier for this batch of uploads
+      const uploadedFileUrls: string[] = [];
+      const mediaMetadata: Partial<MediaFile>[] = [];
+
+      // Step 1: Upload files to Supabase Storage
+      const uploadPromises = files.map(async (file, index) => {
+        const description = descriptions[index] || '';
+        const mediaType = mediaTypes[index] || 'photo';
+
+        // Construct a dedicated storage path for general media
+        const patientFolder = patientId ? patientId : '_Practice';
+        const fullPath = `${practiceId}/_GeneralMedia/${patientFolder}/${patientPhotoId}/${file.originalname}`;
+
+        const uploadResult = await this.uploadFile(
+          PhotoSessionService.SUPABASE_BUCKET_NAME,
+          file,
+          fullPath
+        );
+
+        if (!uploadResult.success || !uploadResult.data?.url) {
+          throw new Error(uploadResult.message2 || `Failed to upload file: ${file.originalname}`);
+        }
+
+        uploadedFileUrls.push(uploadResult.data.url);
+        mediaMetadata.push({
+          original_filename: file.originalname,
+          storage_path: fullPath,
+          storage_url: uploadResult.data.url,
+          media_type: mediaType as 'photo' | 'video',
+          category: 'other', // Using 'other' as it's not before/after
+          //description: description, // Storing the description
+          file_size: file.size,
+        });
+      });
+
+      await Promise.all(uploadPromises);
+
+      // Step 2: Create a single photo session record for this ad-hoc batch
+      const sessionId = uuidv4();
+      const currentDate = new Date().toISOString();
+
+      const { data: session, error } = await supabase
+        .from('photo_sessions')
+        .insert({
+          id: sessionId,
+          practice_id: practiceId,
+          patient_id: patientId, // Can be null
+          patient_photo_id: patientPhotoId,
+          session_date: currentDate,
+          photos_count: files.length,
+          file_urls: uploadedFileUrls,
+          photo_type: 'general', // The key differentiator for this type of upload
+          storage_folder_path: `${practiceId}/_GeneralMedia/${patientId ? patientId : '_Practice'}/${patientPhotoId}/`,
+          status: 'uploaded',
+          media_metadata: mediaMetadata, // Storing detailed metadata
+          created_at: currentDate,
+          updated_at: currentDate
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error creating general photo session record:', error);
+        return { success: false, message2: 'Failed to create general media session record' };
+      }
+
+      // Step 3: DO NOT update workflow session state, as this is outside the workflow.
+
+      return {
+        success: true,
+        message2: 'Media uploaded successfully',
+        data: {
+          patientPhotoId,
+          filesUploaded: files.length,
+          sessionRecord: session,
+        }
+      };
+    } catch (error: any) {
+      console.error('Error in uploadGeneralMedia:', error);
+      return { success: false, message2: error.message || 'Internal server error during general media upload.' };
     }
   }
 

@@ -66,16 +66,16 @@ export default function DashboardPage() {
 
   const quickActions: QuickAction[] = [
     {
-      title: 'Start New Session',
-      icon: Camera,
-      description: 'Initiate photo/video capture for a patient.',
-      href: '/dashboard/workflow',
+      title: 'Start Patient Workflow',
+      icon: QrCode,
+      description: 'Generate a QR code for a new patient to begin consent.',
+      href: '/dashboard/kiosk-qrcode',
       buttonColor: 'bg-indigo-600 hover:bg-indigo-700', // Primary Action
     },
     {
-      title: 'View Consent Queue',
+      title: 'View Patient Queue',
       icon: ClipboardList,
-      description: 'Review and manage patients waiting for photos.',
+      description: 'Manage patients waiting for photo capture.',
       href: '/dashboard/workflow/patient-queue',
       buttonColor: 'bg-orange-500 hover:bg-orange-600', // Secondary Action
     },

@@ -13,7 +13,7 @@ router.use(authenticateToken);
 router.post('/', PatientController.createPatientProfile);
 router.get('/', PatientController.getPatientProfiles);
 router.get('/:patientId', PatientController.getPatientProfileById);
-router.put('/:patientId/last-photo-session',PatientController.updateLastPhotoSession
-);
+router.put('/:patientId/last-photo-session', PatientController.updateLastPhotoSession);
+router.put('/:patientId/complete-workflow-skip-after', PatientController.completeWorkflowSkipAfter);
 
 export default router;

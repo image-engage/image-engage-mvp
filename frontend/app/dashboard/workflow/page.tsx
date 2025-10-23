@@ -4,11 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Camera, CheckCircle, Clock, ArrowRight, QrCode as QrCodeIcon, CheckCircle2, ListChecks, Smile } from 'lucide-react';
+import { FileText, CheckCircle, Clock, ArrowRight, ListChecks, Smile } from 'lucide-react';
 import Link from 'next/link';
-import QRCode from 'react-qr-code';
-import { v4 as uuidv4 } from 'uuid';
-import { api, ApiResponse } from '@/components/lib/api';
+import { api } from '@/components/lib/api';
+import { ApiResponse } from '../../../../backend/src/types';
 
 export default function WorkflowPage() {
   const [stats, setStats] = useState({
@@ -17,12 +16,6 @@ export default function WorkflowPage() {
     photosToday: 0,
     completedSessions: 0,
   });
-
-  const [generatedUrl, setGeneratedUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [countdown, setCountdown] = useState(60);
-
-  const isInitialQREffectRun = useRef(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -72,59 +65,6 @@ export default function WorkflowPage() {
     
     fetchStats();
   }, []);
-
-  const handleGenerateQR = async () => {
-    setIsLoading(true);
-    setCountdown(60);
-
-    try {
-      // Generate secure session token via API
-      const token = localStorage.getItem('token');
-      const response = await api.post('/sessions/generate-qr-token', { 
-        expiresIn: 60 // seconds
-      }, token || undefined) as { success: boolean; data?: { sessionToken: string } };
-      
-      if (response.success && response.data?.sessionToken) {
-        const baseUrl = window.location.origin;
-        const consentFormUrl = `${baseUrl}/patient-consent?session=${response.data.sessionToken}`;
-        setGeneratedUrl(consentFormUrl);
-      } else {
-        throw new Error('Failed to generate secure token');
-      }
-    } catch (error) {
-      console.error('Error generating token:', error);
-      // Fallback: Generate client-side token for now
-      const fallbackToken = uuidv4();
-      const baseUrl = window.location.origin;
-      setGeneratedUrl(`${baseUrl}/patient-consent?session=${fallbackToken}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && isInitialQREffectRun.current) {
-        return;
-    }
-    handleGenerateQR();
-    isInitialQREffectRun.current = true;
-
-    const intervalId = setInterval(() => {
-      handleGenerateQR();
-    }, 60000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
-  useEffect(() => {
-    if (generatedUrl) {
-      const timerId = setInterval(() => {
-        setCountdown(prevCountdown => prevCountdown > 0 ? prevCountdown - 1 : 60);
-      }, 1000);
-
-      return () => clearInterval(timerId);
-    }
-  }, [generatedUrl]);
 
   return (
     <div className="space-y-6">
@@ -179,77 +119,9 @@ export default function WorkflowPage() {
       </div>
 
       {/* Main Workflow Actions */}
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* QR Code Generator */}
-        <Card className="shadow-lg border-2 border-indigo-100">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-xl text-indigo-700">
-              <QrCodeIcon className="h-6 w-6 text-indigo-500" />
-              Patient Consent Kiosk
-            </CardTitle>
-            <CardDescription>
-              Display this code for the next patient to complete their digital consent form.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {generatedUrl ? (
-              <div className="space-y-5 text-center">
-                <div className="bg-gray-100 p-6 rounded-xl border border-gray-300 flex items-center justify-center">
-                  <QRCode 
-                    value={generatedUrl} 
-                    size={180} 
-                    className="w-full max-w-[180px] rounded-md shadow-lg" 
-                    fgColor="#000000"
-                    bgColor="#ffffff" 
-                  />
-                </div>
-                
-                <div className="flex justify-between items-center text-sm font-medium">
-                  <Badge className="bg-green-600 text-white font-semibold">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Code Active
-                  </Badge>
-                  <span className="text-gray-600">
-                    Regenerates in: <strong className="text-indigo-600">{countdown}s</strong>
-                  </span>
-                </div>
-                
-                <Button 
-                  onClick={handleGenerateQR} 
-                  disabled={isLoading} 
-                  className="w-full bg-indigo-600 hover:bg-indigo-700"
-                  size="lg"
-                >
-                  {isLoading ? 'Generating New Token...' : 'Refresh QR Code Now'}
-                </Button>
-                
-                <p className="text-xs text-gray-500">
-                  The link is secure, single-use, and valid for 60 seconds.
-                </p>
-                
-                <Link href={generatedUrl || '/patient-consent'} className="block">
-                  <Button variant="outline" className="w-full">
-                    View Patient Consent Form
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="text-center p-10">
-                <p className="text-gray-500">Loading token...</p>
-                <Button 
-                  onClick={handleGenerateQR} 
-                  disabled={isLoading} 
-                  className="mt-4 bg-indigo-600 hover:bg-indigo-700"
-                >
-                  Generate Code
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
+      <div className="flex justify-center">
         {/* Patient Queue */}
-        <Card className="shadow-lg border-2 border-amber-100">
+        <Card className="shadow-lg border-2 border-amber-100 w-full max-w-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-3 text-xl text-amber-700">
               <ListChecks className="h-6 w-6 text-amber-500" />

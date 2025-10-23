@@ -65,13 +65,22 @@ export class PatientService {
   /**
    * Retrieves all patient profiles associated with a given practice from the `patients` table.
    */
-  static async getPatientProfilesByPractice(practiceId: string): Promise<ApiResponse<PatientConsent[]>> {
+  static async getPatientProfilesByPractice(practiceId: string, searchTerm?: string): Promise<ApiResponse<PatientConsent[]>> {
     try {
-      const { data: patients, error } = await supabase
+      let query = supabase
         // Updated table name from 'patient_consents' to 'patients'
         .from('patients')
         .select('*')
-        .eq('practice_id', practiceId)
+        .eq('practice_id', practiceId);
+
+      // If a search term is provided, add a filter
+      if (searchTerm) {
+        const searchPattern = `%${searchTerm}%`;
+        // Use .or() to search in multiple columns. The syntax is a string of filters.
+        query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern}`);
+      }
+
+      const { data: patients, error } = await query
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -179,6 +188,60 @@ export class PatientService {
       };
     } catch (error) {
       console.error('Error updating last photo session:', error);
+      return {
+        success: false,
+        message2: 'Internal server error'
+      };
+    }
+  }
+
+  /**
+   * Completes workflow session when after photos are skipped
+   */
+  static async completeWorkflowSkipAfter(
+    practiceId: string,
+    patientId: string,
+    sessionId: string
+  ): Promise<ApiResponse> {
+    try {
+      const currentDate = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('patient_workflow_sessions')
+        .update({
+          current_step: 'completed',
+          after_photos_completed: true,
+          after_completed_at: currentDate,
+          workflow_completed_at: currentDate,
+          updated_at: currentDate
+        })
+        .eq('patient_id', patientId)
+        .eq('practice_id', practiceId)
+        .eq('id', sessionId)
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        console.error('Database update error:', error);
+        return {
+          success: false,
+          message2: 'Failed to complete workflow session'
+        };
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          message2: 'Workflow session not found'
+        };
+      }
+
+      return {
+        success: true,
+        message2: 'Workflow session completed successfully'
+      };
+    } catch (error) {
+      console.error('Error completing workflow session:', error);
       return {
         success: false,
         message2: 'Internal server error'

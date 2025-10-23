@@ -171,7 +171,7 @@ export default function WorkflowComplete() {
               {/* Videos */}
               <MediaSummaryBlock 
                 title="Videos" 
-                count={patientSession.videos.length} 
+                count={(patientSession.videos || []).length} 
                 icon={Video}
                 isComplete={hasVideos}
                 isRequired={false}
@@ -187,7 +187,7 @@ export default function WorkflowComplete() {
                   <span className="font-medium text-gray-800">Total Media Files Captured</span>
                 </div>
                 <span className="text-xl font-bold text-blue-600">
-                  {patientSession.beforePhotos.length + patientSession.afterPhotos.length + patientSession.videos.length}
+                  {(patientSession.beforePhotos || []).length + (patientSession.afterPhotos || []).length + (patientSession.videos || []).length}
                 </span>
               </div>
             </div>

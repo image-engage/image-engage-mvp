@@ -138,4 +138,43 @@ export class PatientController {
     }
   }
 
+  /**
+   * Completes workflow session when after photos are skipped
+   */
+  static async completeWorkflowSkipAfter(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
+    try {
+      const practiceId = req.practiceId!;
+      const patientId = req.params.patientId as string;
+      const { sessionId } = req.body;
+
+      if (!patientId || !sessionId) {
+        res.status(400).json({
+          success: false,
+          message2: 'Patient ID and session ID are required'
+        });
+        return;
+      }
+
+      const result = await PatientService.completeWorkflowSkipAfter(
+        practiceId,
+        patientId,
+        sessionId
+      );
+
+      if (result.success) {
+        res.status(200).json(result);
+      } else if (result.message2 === 'Workflow session not found') {
+        res.status(404).json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      console.error('Complete workflow skip after error:', error);
+      res.status(500).json({
+        success: false,
+        message2: 'Internal server error'
+      } as ApiResponse);
+    }
+  }
+
 }

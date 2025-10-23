@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '../../components/lib/utils';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, FileText, Upload, Image, Menu, X, Settings, BookOpen, Star, Bot, Calendar, Archive, Code, BarChart3, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, QrCode, Camera, Archive, ClipboardSignature, Menu, X, Settings, LogOut } from 'lucide-react';
 import { api } from '../../components/lib/api';
 import { toast } from 'sonner';
 
@@ -19,10 +19,10 @@ interface NavItem {
 // 2. Explicitly type the arrays using the defined interface
 const primaryNavigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Capture Media', href: '/dashboard/workflow', icon: FileText },
-  { name: 'View Media', href: '/dashboard/media-management', icon: FileText },
-  { name: 'Manage Consents', href: '/dashboard/consents', icon: FileText },
-
+  { name: 'Patient Kiosk', href: '/dashboard/kiosk-qrcode', icon: QrCode },
+  { name: 'Capture Media', href: '/dashboard/workflow', icon: Camera },
+  { name: 'View Media', href: '/dashboard/media-management', icon: Archive },
+  { name: 'Manage Consents', href: '/dashboard/consents', icon: ClipboardSignature },
 ];
 
 const secondaryNavigation: NavItem[] = [
