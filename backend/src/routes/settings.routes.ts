@@ -1,17 +1,31 @@
-import { Router } from 'express';
-import { SettingsController } from '../controllers/settings.controller';
+// src/routes/settings.routes.ts
+import { Router, Response } from 'express';
+import { SettingsController } from '../controllers/settings.controller'; // Correct path
+import { AuthRequest } from '../types'; // Correct path
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
-router.use(authenticateToken);
+/**
+ * @route GET /api/settings/practice-profile
+ * @description Get the full profile for the authenticated practice.
+ * @access Private
+ */
+router.get('/practice-profile', authenticateToken, SettingsController.getPracticeProfile);
 
-// All routes in this file would be prefixed with something like /api/practice
+/**
+ * @route GET /api/settings/review-settings
+ * @description Get the review settings for the authenticated practice.
+ * @access Private
+ */
+router.get('/review-settings', authenticateToken, SettingsController.getReviewSettings);
 
-// GET /api/settings
-router.get('/', SettingsController.getSettings);
+/**
+ * @route GET /api/settings/users
+ * @description Get all users for the authenticated practice.
+ * @access Private
+ */
+router.get('/users', authenticateToken, SettingsController.getPracticeUsers);
 
-// PUT /api/settings
-router.put('/', SettingsController.updateSettings);
 
 export default router;

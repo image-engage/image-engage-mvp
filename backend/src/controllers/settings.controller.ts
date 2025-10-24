@@ -1,69 +1,49 @@
+// src/controllers/settings.controller.ts
 import { Response } from 'express';
-import * as settingsService from '../services/settings.service';
-import { UpdatePracticeDto} from '../types/settings-practice';
-import { ApiResponse } from '../types'; 
-import { AuthenticatedRequest } from '../middleware/auth';
+import { SettingsService } from '../services/settings.service';
+import { AuthRequest } from '../types';
 
 export class SettingsController {
   /**
-   * Handles GET request to fetch practice settings.
+   * Retrieves the full practice profile, including related settings data.
    */
-  static async getSettings(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
-    try {
-      // Get the practiceId from the authenticated user's token.
-      const practiceId = req.user?.practiceId;
-
-      if (!practiceId) {
-        res.status(401).json({ success: false, message: 'Authentication required: Practice ID not found in token.' });
-        return;
-      }
-
-      const settings = await settingsService.getPracticeSettings(practiceId);
-
-      if (!settings) {
-        res.status(404).json({ success: false, message: 'Practice settings not found.' });
-        return;
-      }
-
-      res.status(200).json({ success: true, data: settings });
-    } catch (error) {
-      console.error('Error fetching practice settings:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
-      res.status(500).json({ success: false, message: 'Internal server error.', error: errorMessage });
+  static async getPracticeProfile(req: AuthRequest, res: Response): Promise<void> {
+    const practiceId = req.user?.practiceId;
+    if (!practiceId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
     }
+
+    const result = await SettingsService.getPracticeProfile(practiceId);
+    res.status(result.success ? 200 : 404).json(result);
   }
 
   /**
-   * Handles PUT request to update practice settings.
+   * Retrieves the review settings for a practice.
+   * NOTE: This currently returns placeholder data.
    */
-  static async updateSettings(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
-    try {
-      const practiceId = req.user?.practiceId;
-      const updateData: UpdatePracticeDto = req.body;
-
-      if (!practiceId) {
-        res.status(401).json({ success: false, message: 'Authentication required: Practice ID not found in token.' });
-        return;
-      }
-
-      // Ensure there's something to update
-      if (Object.keys(updateData).length === 0) {
-        res.status(400).json({ success: false, message: 'No update data provided.' });
-        return;
-      }
-
-      const updatedSettings = await settingsService.updatePracticeSettings(practiceId, updateData);
-
-      if (!updatedSettings) {
-        // This could be because the practiceId is invalid
-        res.status(404).json({ success: false, message: 'Practice not found.' });
-        return;
-      }
-      res.status(200).json({ success: true, data: updatedSettings });
-    } catch (error) {
-      console.error('Error updating practice settings:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
-      res.status(500).json({ success: false, message: 'Internal server error.', error: errorMessage });
+  static async getReviewSettings(req: AuthRequest, res: Response): Promise<void> {
+    const practiceId = req.user?.practiceId;
+    if (!practiceId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
     }
+
+    const result = await SettingsService.getReviewSettings(practiceId);
+    res.status(200).json(result);
+  }
+
+  /**
+   * Retrieves all users associated with a practice.
+   */
+  static async getPracticeUsers(req: AuthRequest, res: Response): Promise<void> {
+    const practiceId = req.user?.practiceId;
+    if (!practiceId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const result = await SettingsService.getPracticeUsers(practiceId);
+    res.status(result.success ? 200 : 500).json(result);
   }
 }

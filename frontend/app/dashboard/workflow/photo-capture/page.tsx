@@ -68,16 +68,23 @@ interface Practice {
 }
 
 // --- Constants ---
-const REQUIRED_PHOTO_TYPES = ['frontal', 'right-lateral', 'left-lateral', 'lower', 'upper', 'upper-occlusal', 'lower-occlusal'];
+const REQUIRED_PHOTO_TYPES = ['ex-oral-full-smile', 'ex-oral-up-close-smile', 'repose-up-close-smile', 'frontal', 'right-lateral', 'left-lateral', 'upper-occlusal', 'lower-occlusal', 'll-lingual', 'lr-lingual', 'upper', 'lower', 'max-anterior', 'mand-anterior'];
 const OPTIONAL_PHOTO_TYPES = ['face-closed-lips', 'face-smile', 'right-profile', 'left-profile'];
 const PHOTO_LABELS: Record<string, string> = {
-  'frontal': 'Frontal',
-  'right-lateral': 'Right Lateral',
-  'left-lateral': 'Left Lateral',
-  'lower': 'Lower',
-  'upper': 'Upper',
+  'ex-oral-full-smile': 'Retracted Frontal Teeth Together',
+  'ex-oral-up-close-smile': 'Retracted Frontal Teeth Apart',
+  'repose-up-close-smile': 'Retracted R Lateral Teeth Apart',
+  'frontal': 'Retracted R Lateral Teeth Apart',
+  'right-lateral': 'Retracted Right Lateral',
+  'left-lateral': 'Retracted Left Lateral',
+  'lower': 'UL Lingual',
+  'upper': 'UR Lingual',
   'upper-occlusal': 'Upper Occlusal',
   'lower-occlusal': 'Lower Occlusal',
+  'll-lingual': 'LL Lingual',
+  'lr-lingual': 'LR Lingual',
+  'max-anterior': 'Max Anterior',
+  'mand-anterior': 'Mand Anterior',
   'face-closed-lips': 'Headshot Face Closed Lips',
   'face-smile': 'Headshot Face Smile',
   'right-profile': 'Headshot Right Profile',
@@ -723,7 +730,7 @@ export default function PhotoCapture() {
 
             {/* A. Required Photos Grid (Interactive Tiles) */}
             <h3 className="font-semibold text-lg text-gray-700 border-b pb-2">
-                Required Photos {requiredCompleted && (<CheckCircle2 className='h-5 w-5 text-green-600 inline-block ml-2' />)}
+                Intra-Oral Photographs {requiredCompleted && (<CheckCircle2 className='h-5 w-5 text-green-600 inline-block ml-2' />)}
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {REQUIRED_PHOTO_TYPES.map(type => {
@@ -816,7 +823,7 @@ export default function PhotoCapture() {
             </div>
             
             {/* B. Optional Photos Grid */}
-            <h3 className="font-semibold text-lg text-gray-700 border-b pb-2 mt-8">Optional Photos (Suggested)</h3>
+            <h3 className="font-semibold text-lg text-gray-700 border-b pb-2 mt-8">Extra-Oral Photographs (Optional)</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {OPTIONAL_PHOTO_TYPES.map(type => {
                 const isExistingOptional = getExistingPhotosForType(currentStep, type);

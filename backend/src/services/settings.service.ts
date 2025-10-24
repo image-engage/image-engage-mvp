@@ -1,60 +1,82 @@
+// src/services/settings.service.ts
 import { supabase } from '../config/database';
-import { Practice, UpdatePracticeDto } from '../types/settings-practice'; // Assuming types are in a central types file
+import { ApiResponse, Practice, User } from '../types';
 
 /**
- * Fetches practice settings by practice ID.
- * @param practiceId - The UUID of the practice.
- * @returns The practice settings.
+ * Service class for handling settings-related operations.
  */
-export const getPracticeSettings = async (practiceId: string): Promise<Practice | null> => {
-  const { data, error } = await supabase
-    .from('practices')
-    .select('*')
-    .eq('id', practiceId)
-    .single();
+export class SettingsService {
 
-  if (error && error.code !== 'PGRST116') { // PGRST116: "No rows found"
-    console.error('Error fetching practice settings:', error);
-    throw new Error(error.message);
-  }
+  /**
+   * Retrieves the full practice profile, including related settings data.
+   * @param practiceId The ID of the practice.
+   * @returns An ApiResponse containing the practice profile.
+   */
+  static async getPracticeProfile(practiceId: string): Promise<ApiResponse<Practice>> {
+    try {
+      const { data, error } = await supabase
+        .from('practices')
+        .select(`
+          *,
+          business_hours(*),
+          social_media_accounts(*),
+          subscriptions(*)
+        `)
+        .eq('id', practiceId)
+        .single();
 
-  return data as Practice | null;
-};
+      if (error) {
+        console.error('Error fetching practice profile:', error);
+        return { success: false, message: 'Failed to retrieve practice profile.', error: error.message };
+      }
 
-/**
- * Updates practice settings.
- * @param practiceId - The UUID of the practice to update.
- * @param updateData - The data to update.
- * @returns The updated practice settings.
- */
-export const updatePracticeSettings = async (
-  practiceId: string,
-  updateData: UpdatePracticeDto
-): Promise<Practice | null> => {
-  // Filter out undefined values so we only update provided fields
-  const validUpdateData = Object.entries(updateData).reduce((acc, [key, value]) => {
-    if (value !== undefined) {
-      acc[key as keyof UpdatePracticeDto] = value;
+      if (!data) {
+        return { success: false, message: 'Practice not found.' };
+      }
+
+      return { success: true, message: 'Practice profile retrieved successfully.', data };
+    } catch (error: any) {
+      console.error('Unexpected error in getPracticeProfile:', error);
+      return { success: false, message: 'An internal server error occurred.', error: error.message };
     }
-    return acc;
-  }, {} as { [key: string]: any });
-
-  if (Object.keys(validUpdateData).length === 0) {
-    // If no valid data to update, just fetch and return the current settings
-    return getPracticeSettings(practiceId);
   }
 
-  const { data, error } = await supabase
-    .from('practices')
-    .update({ ...validUpdateData, updated_at: new Date().toISOString() })
-    .eq('id', practiceId)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error updating practice settings:', error);
-    throw new Error(error.message);
+  /**
+   * Retrieves the review settings for a practice.
+   * @param practiceId The ID of the practice.
+   * @returns An ApiResponse containing the review settings.
+   */
+  static async getReviewSettings(practiceId: string): Promise<ApiResponse> {
+    // The 'review_settings' table does not exist in the provided schema.
+    // This is a placeholder implementation.
+    // To implement this fully, a 'review_settings' table linked to 'practices' is needed.
+    console.warn(`Attempted to access 'review_settings' for practice ${practiceId}, but the table does not exist in the schema.`);
+    return {
+      success: true,
+      message: "Review settings endpoint is not fully implemented pending database schema changes.",
+      data: {
+        email_enabled: false,
+        sms_enabled: false,
+        email_template: "This is a default template.",
+        sms_template: "This is a default SMS template.",
+        review_platforms: [],
+        delay_hours: 24
+      }
+    };
   }
 
-  return data as Practice | null;
-};
+  /**
+   * Retrieves all users associated with a practice.
+   * @param practiceId The ID of the practice.
+   * @returns An ApiResponse containing a list of users.
+   */
+  static async getPracticeUsers(practiceId: string): Promise<ApiResponse<User[]>> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('practice_id', practiceId);
+
+    if (error) return { success: false, message: 'Failed to retrieve users.', error: error.message };
+    return { success: true, message: 'Users retrieved successfully.', data: data || [] };
+  }
+}

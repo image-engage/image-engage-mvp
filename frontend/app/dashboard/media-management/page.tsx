@@ -741,6 +741,16 @@ export default function PatientMediaDashboard() {
 const Slideshow = ({ images, isOpen, onClose }: { images: MediaFile[], isOpen: boolean, onClose: () => void }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(true);
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [drawingTool, setDrawingTool] = useState<'pencil' | 'eraser' | 'hand'>('pencil');
+    const canvasRef = React.useRef<HTMLCanvasElement>(null);
+    const imageRef = React.useRef<HTMLImageElement>(null);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null);
+    const [zoom, setZoom] = useState(1);
+    const [pan, setPan] = useState({ x: 0, y: 0 });
+    const [isPanning, setIsPanning] = useState(false);
+    const [lastPanPoint, setLastPanPoint] = useState<{ x: number; y: number } | null>(null);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -766,25 +776,262 @@ const Slideshow = ({ images, isOpen, onClose }: { images: MediaFile[], isOpen: b
 
     const nextSlide = () => {
         setCurrentIndex(prev => (prev + 1) % images.length);
+        clearCanvas();
+        resetZoom();
     };
 
     const prevSlide = () => {
         setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
+        clearCanvas();
+        resetZoom();
+    };
+
+    const resetZoom = () => {
+        setZoom(1);
+        setPan({ x: 0, y: 0 });
+    };
+
+    const handleZoomIn = () => {
+        setZoom(prev => Math.min(prev * 1.5, 5));
+    };
+
+    const handleZoomOut = () => {
+        setZoom(prev => Math.max(prev / 1.5, 0.5));
+    };
+
+    const handleWheel = (e: React.WheelEvent) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        setZoom(prev => Math.min(Math.max(prev * delta, 0.5), 5));
+    };
+
+    const handlePanStart = (e: React.MouseEvent | React.TouchEvent) => {
+        if (drawingTool !== 'hand' && zoom <= 1) return;
+        e.preventDefault();
+        setIsPanning(true);
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        setLastPanPoint({ x: clientX, y: clientY });
+    };
+
+    const handlePanMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isPanning || !lastPanPoint) return;
+        if (drawingTool !== 'hand' && zoom <= 1) return;
+        e.preventDefault();
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        const deltaX = clientX - lastPanPoint.x;
+        const deltaY = clientY - lastPanPoint.y;
+        setPan(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+        setLastPanPoint({ x: clientX, y: clientY });
+    };
+
+    const handlePanEnd = () => {
+        setIsPanning(false);
+        setLastPanPoint(null);
+    };
+
+    const clearCanvas = () => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+    };
+
+    const setupCanvas = () => {
+        const canvas = canvasRef.current;
+        const image = imageRef.current;
+        if (canvas && image) {
+            const rect = image.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            canvas.style.left = `${rect.left}px`;
+            canvas.style.top = `${rect.top}px`;
+        }
+    };
+
+    const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return null;
+        
+        const rect = canvas.getBoundingClientRect();
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    };
+
+    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        if (drawingTool === 'hand') {
+            handlePanStart(e);
+            return;
+        }
+        e.preventDefault();
+        setIsDrawing(true);
+        const point = getCanvasPoint(e);
+        setLastPoint(point);
+    };
+
+    const draw = (e: React.MouseEvent | React.TouchEvent) => {
+        if (drawingTool === 'hand') {
+            handlePanMove(e);
+            return;
+        }
+        e.preventDefault();
+        if (!isDrawing || !lastPoint) return;
+        
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d');
+        if (!ctx || !canvas) return;
+        
+        const currentPoint = getCanvasPoint(e);
+        if (!currentPoint) return;
+        
+        ctx.beginPath();
+        ctx.moveTo(lastPoint.x, lastPoint.y);
+        ctx.lineTo(currentPoint.x, currentPoint.y);
+        
+        if (drawingTool === 'pencil') {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 3;
+        } else {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.lineWidth = 20;
+        }
+        
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        setLastPoint(currentPoint);
+    };
+
+    const stopDrawing = () => {
+        if (drawingTool === 'hand') {
+            handlePanEnd();
+            return;
+        }
+        setIsDrawing(false);
+        setLastPoint(null);
     };
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="relative w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+            <div 
+                ref={containerRef}
+                className="relative w-full h-full flex items-center justify-center overflow-hidden" 
+                onClick={e => e.stopPropagation()}
+                onWheel={handleWheel}
+            >
                 <img 
+                    ref={imageRef}
                     src={images[currentIndex].preview} 
                     alt={images[currentIndex].fileName} 
-                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in fade-in-50"
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in fade-in-50 select-none"
+                    style={{
+                        transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                        cursor: drawingTool === 'hand' ? (isPanning ? 'grabbing' : 'grab') : 
+                               zoom > 1 && drawingTool !== 'pencil' && drawingTool !== 'eraser' ? 'grab' : 'default'
+                    }}
+                    onLoad={setupCanvas}
+                    onMouseDown={handlePanStart}
+                    onMouseMove={handlePanMove}
+                    onMouseUp={handlePanEnd}
+                    onMouseLeave={handlePanEnd}
+                    onTouchStart={handlePanStart}
+                    onTouchMove={handlePanMove}
+                    onTouchEnd={handlePanEnd}
+                    draggable={false}
+                />
+                <canvas
+                    ref={canvasRef}
+                    className="absolute pointer-events-auto"
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
                 />
                 <Button onClick={onClose} variant="destructive" size="icon" className="absolute top-4 right-4 rounded-full h-10 w-10"><X className="h-5 w-5" /></Button>
                 <Button onClick={prevSlide} variant="secondary" size="icon" className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full h-12 w-12 opacity-70 hover:opacity-100"><ChevronLeft className="h-6 w-6" /></Button>
                 <Button onClick={nextSlide} variant="secondary" size="icon" className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full h-12 w-12 opacity-70 hover:opacity-100"><ChevronRight className="h-6 w-6" /></Button>
+                
+                {/* Drawing Tools */}
+                <div className="absolute top-4 left-4 flex flex-col gap-2">
+                    <Button 
+                        onClick={() => setDrawingTool('pencil')} 
+                        variant={drawingTool === 'pencil' ? 'default' : 'secondary'} 
+                        size="icon" 
+                        className="rounded-full h-10 w-10"
+                    >
+                        ✏️
+                    </Button>
+                    <Button 
+                        onClick={() => setDrawingTool('eraser')} 
+                        variant={drawingTool === 'eraser' ? 'default' : 'secondary'} 
+                        size="icon" 
+                        className="rounded-full h-10 w-10"
+                    >
+                        🧹
+                    </Button>
+                    <Button 
+                        onClick={() => setDrawingTool('hand')} 
+                        variant={drawingTool === 'hand' ? 'default' : 'secondary'} 
+                        size="icon" 
+                        className="rounded-full h-10 w-10"
+                        title="Hand Tool - Pan Image"
+                    >
+                        ✋
+                    </Button>
+                    <Button 
+                        onClick={clearCanvas} 
+                        variant="outline" 
+                        size="icon" 
+                        className="rounded-full h-10 w-10 text-white border-white hover:bg-white/20"
+                    >
+                        🗑️
+                    </Button>
+                </div>
+                
+                {/* Zoom Controls */}
+                <div className="absolute top-4 right-16 flex flex-col gap-2">
+                    <Button 
+                        onClick={handleZoomIn} 
+                        variant="default" 
+                        size="icon" 
+                        className="rounded-full h-14 w-14 bg-white text-black hover:bg-gray-100 text-2xl font-black shadow-lg border-2 border-gray-300"
+                    >
+                        +
+                    </Button>
+                    <Button 
+                        onClick={handleZoomOut} 
+                        variant="default" 
+                        size="icon" 
+                        className="rounded-full h-14 w-14 bg-white text-black hover:bg-gray-100 text-2xl font-black shadow-lg border-2 border-gray-300"
+                    >
+                        −
+                    </Button>
+                    <Button 
+                        onClick={resetZoom} 
+                        variant="default" 
+                        size="icon" 
+                        className="rounded-full h-14 w-14 bg-white text-black hover:bg-gray-100 text-xl font-bold shadow-lg border-2 border-gray-300"
+                        title="Reset Zoom"
+                    >
+                        ⌂
+                    </Button>
+                </div>
+                
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/50 p-2 rounded-full">
                     <Button onClick={() => setIsPlaying(!isPlaying)} variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full">
                         {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
