@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, CheckCircle, Clock, ArrowRight, ListChecks, Smile } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/components/lib/api';
 import { ApiResponse } from '../../../../backend/src/types';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function WorkflowPage() {
   const [stats, setStats] = useState({
@@ -16,6 +17,37 @@ export default function WorkflowPage() {
     photosToday: 0,
     completedSessions: 0,
   });
+  const [consentUrl, setConsentUrl] = useState('');
+  const [isGeneratingConsent, setIsGeneratingConsent] = useState(false);
+
+  const handleGenerateConsentForm = async () => {
+    setIsGeneratingConsent(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await api.post('/sessions/generate-qr-token', { 
+        expiresIn: 60
+      }, token || undefined) as { success: boolean; data?: { sessionToken: string } };
+      
+      if (response.success && response.data?.sessionToken) {
+        const baseUrl = window.location.origin;
+        const consentFormUrl = `${baseUrl}/patient-consent?session=${response.data.sessionToken}`;
+        setConsentUrl(consentFormUrl);
+        window.open(consentFormUrl, '_blank');
+      } else {
+        throw new Error('Failed to generate secure token');
+      }
+    } catch (error) {
+      console.error('Error generating consent form:', error);
+      const fallbackToken = uuidv4();
+      const baseUrl = window.location.origin;
+      const fallbackUrl = `${baseUrl}/patient-consent?session=${fallbackToken}`;
+      setConsentUrl(fallbackUrl);
+      window.open(fallbackUrl, '_blank');
+    } finally {
+      setIsGeneratingConsent(false);
+    }
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -119,41 +151,71 @@ export default function WorkflowPage() {
       </div>
 
       {/* Main Workflow Actions */}
-      <div className="flex justify-center">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* Start New Session */}
+        <Card className="shadow-lg border-2 border-indigo-100 h-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3 text-xl text-indigo-700">
+              <FileText className="h-6 w-6 text-indigo-500" />
+              Start New Patient Session
+            </CardTitle>
+            <CardDescription>
+              Begin the workflow for a new patient by generating a consent form.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col h-full">
+            <div className="flex-grow space-y-4">
+              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  This is the first step for any new patient. Once the consent form is signed, the patient will be added to the queue for photo capture.
+                </p>
+              </div>
+            </div>
+            <Button 
+              onClick={handleGenerateConsentForm}
+              disabled={isGeneratingConsent}
+              size="lg" 
+              className="w-full mt-6 bg-indigo-500 hover:bg-indigo-600"
+            >
+              {isGeneratingConsent ? 'Generating...' : 'Generate Consent Form'}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Patient Queue */}
-        <Card className="shadow-lg border-2 border-amber-100 w-full max-w-lg">
+        <Card className="shadow-lg border-2 border-amber-100 h-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-3 text-xl text-amber-700">
               <ListChecks className="h-6 w-6 text-amber-500" />
               Continue Patient Session
             </CardTitle>
             <CardDescription>
-              Access the queue to complete photo capture for patients who have signed consent.
+              Complete photo capture for patients who have already signed consent.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
-              <span className="text-lg font-semibold text-amber-800">
-                Patients Waiting:
-              </span>
-              <Badge className="bg-amber-500 text-white text-xl font-bold px-4 py-1">
-                {stats.waitingPatients}
-              </Badge>
+          <CardContent className="flex flex-col h-full">
+            <div className="flex-grow space-y-4">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
+                <span className="text-lg font-semibold text-amber-800">Patients Waiting:</span>
+                <Badge className="bg-amber-500 text-white text-xl font-bold px-4 py-1">
+                  {stats.waitingPatients}
+                </Badge>
+              </div>
+              <p className="text-sm text-gray-600">
+                Select a patient from the queue to proceed with their "Before" or "After" photo session.
+              </p>
             </div>
-            
-            <p className="text-sm text-gray-600">
-              This workflow is used when a patient has completed their consent and is ready for the next step (e.g., before photos, after photos).
-            </p>
-
-            <Link href="/dashboard/workflow/patient-queue" className="block">
-              <Button 
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white" 
-                size="lg"
-                disabled={stats.waitingPatients === 0}
-              >
-                View Patient Queue
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+            <Link
+              href={stats.waitingPatients === 0 ? '#' : "/dashboard/workflow/patient-queue"}
+              className={buttonVariants({
+                size: 'lg',
+                className: `w-full mt-6 bg-amber-600 hover:bg-amber-700 ${stats.waitingPatients === 0 ? 'opacity-50 cursor-not-allowed' : ''}`
+              })}
+              onClick={(e) => stats.waitingPatients === 0 && e.preventDefault()}
+            >
+              View Patient Queue
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </CardContent>
         </Card>
