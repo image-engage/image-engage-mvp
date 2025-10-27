@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Camera, ArrowLeft, CheckCircle2, Loader2, UploadCloud, XCircle, Plus, Video, Pause, Clock, AlertTriangle } from 'lucide-react';
+import { Camera, ArrowLeft, CheckCircle2, Loader2, UploadCloud, XCircle, Plus, Video, Pause, Clock, AlertTriangle, Grid3X3 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { api, ApiResponse } from '@/components/lib/api';
@@ -119,6 +119,7 @@ export default function PhotoCapture() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [checkingQualityFor, setCheckingQualityFor] = useState<string | null>(null);
   const videoRecordRef = useRef<HTMLVideoElement>(null);
+  const [showGrid, setShowGrid] = useState(false);
 
   // --- Utility & State Management Functions (Defined or Replaced from original code) ---
 
@@ -1153,7 +1154,28 @@ export default function PhotoCapture() {
               muted 
               className="w-full h-full object-cover"
             />
+            {/* Grid Overlay */}
+            {showGrid && (
+              <div className="absolute inset-0 pointer-events-none">
+                <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* Rule of thirds grid */}
+                  <line x1="33.33" y1="0" x2="33.33" y2="100" stroke="white" strokeWidth="0.2" opacity="0.7" />
+                  <line x1="66.67" y1="0" x2="66.67" y2="100" stroke="white" strokeWidth="0.2" opacity="0.7" />
+                  <line x1="0" y1="33.33" x2="100" y2="33.33" stroke="white" strokeWidth="0.2" opacity="0.7" />
+                  <line x1="0" y1="66.67" x2="100" y2="66.67" stroke="white" strokeWidth="0.2" opacity="0.7" />
+                </svg>
+              </div>
+            )}
             <canvas ref={canvasRef} className="hidden" />
+            {/* Grid Toggle */}
+            <div className="absolute top-4 right-4">
+              <Button
+                onClick={() => setShowGrid(!showGrid)}
+                className={`rounded-full w-12 h-12 ${showGrid ? 'bg-blue-500 text-white' : 'bg-white bg-opacity-20 text-white'} hover:bg-opacity-30`}
+              >
+                <Grid3X3 className="h-6 w-6" />
+              </Button>
+            </div>
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
               <Button
                 onClick={capturePhoto}
@@ -1188,6 +1210,18 @@ export default function PhotoCapture() {
               muted 
               className="w-full h-full object-cover"
             />
+            {/* Grid Overlay for Video */}
+            {showGrid && (
+              <div className="absolute inset-0 pointer-events-none">
+                <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* Rule of thirds grid */}
+                  <line x1="33.33" y1="0" x2="33.33" y2="100" stroke="white" strokeWidth="0.2" opacity="0.7" />
+                  <line x1="66.67" y1="0" x2="66.67" y2="100" stroke="white" strokeWidth="0.2" opacity="0.7" />
+                  <line x1="0" y1="33.33" x2="100" y2="33.33" stroke="white" strokeWidth="0.2" opacity="0.7" />
+                  <line x1="0" y1="66.67" x2="100" y2="66.67" stroke="white" strokeWidth="0.2" opacity="0.7" />
+                </svg>
+              </div>
+            )}
             
             {/* Recording Timer */}
             {isRecording && (
@@ -1196,6 +1230,17 @@ export default function PhotoCapture() {
                 <span className="font-mono text-lg">{formatTime(elapsedTime)}</span>
               </div>
             )}
+            
+            {/* Grid Toggle for Video */}
+            <div className="absolute top-4 right-4">
+              <Button
+                onClick={() => setShowGrid(!showGrid)}
+                className={`rounded-full w-12 h-12 ${showGrid ? 'bg-blue-500 text-white' : 'bg-white bg-opacity-20 text-white'} hover:bg-opacity-30`}
+                disabled={isRecording}
+              >
+                <Grid3X3 className="h-6 w-6" />
+              </Button>
+            </div>
             
             {/* Recording Controls */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
@@ -1225,8 +1270,9 @@ export default function PhotoCapture() {
             </div>
             
             {/* Instructions */}
-            <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-4 py-2 rounded">
+            <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-4 py-2 rounded text-center">
               {!isRecording ? 'Tap red button to start recording' : 'Recording in progress...'}
+              {showGrid && <div className="text-xs mt-1">Grid overlay active</div>}
             </div>
           </div>
         </div>
