@@ -19,7 +19,8 @@ async function runMigration() {
   try {
     console.log('Running workflow sessions migration...');
     
-    const migrationPath = path.join(__dirname, 'src/migrations/20250109000000_create_workflow_sessions.sql');
+    const migrationPath = path.join(__dirname, 'src/migrations/20250115000000_add_email_verification.sql');
+    console.log('Running email verification migration...');
     const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
     
     // Split the migration into individual statements

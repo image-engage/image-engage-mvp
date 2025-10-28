@@ -7,11 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, ArrowLeft, UserPlus, Loader2, Info } from 'lucide-react'; // Added Info icon for requirements box
+import { Eye, EyeOff, ArrowLeft, UserPlus, Loader2, Info, CheckCircle, Mail } from 'lucide-react'; // Added icons for success screen
 import { toast } from 'sonner';
 import Link from 'next/link';
-
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+import { api, ApiError } from '@/components/lib/api';
 
 // Re-defining interface from the login component for consistency
 interface LoginSuccessData {
@@ -38,6 +37,8 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const router = useRouter();
 
   const handleInputChange = (field: string, value: string) => {
@@ -77,57 +78,111 @@ export default function SignupPage() {
     
     setIsLoading(true);
     
-    if (!BACKEND_API_URL) {
-      toast.error('Backend API URL is not configured.');
-      setIsLoading(false);
-      return;
-    }
-    
     try {
-      const response = await fetch(`${BACKEND_API_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          practiceName: formData.practiceName,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role // Role will typically be 'admin' for a new practice setup
-        }),
+      const response = await api.post('/auth/register', {
+        practiceName: formData.practiceName,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role
       });
 
-      const data: any = await response.json(); // Use 'any' for the API response body for simpler type handling here
-
-      if (response.ok && data.success) {
-        // Successful registration and automatic login/token generation
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('token', data.data.token);
-        localStorage.setItem('practice', JSON.stringify(data.data.practice));
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-
-        toast.success(data.message2 || 'Account created successfully! Redirecting to setup...');
-
-        // Redirect based on onboarding status
-        if (!data.data.practice.isonboarded && data.data.user.role === 'admin') {
-          router.push('/onboarding');
-        } else {
-          router.push('/dashboard');
-        }
-
+      if (response.success) {
+        setUserEmail(formData.email);
+        setRegistrationSuccess(true);
+        toast.success('Account created successfully! Please check your email to verify your account.');
       } else {
-        toast.error(data.message2 || 'Failed to create account. Please check your details.');
+        toast.error(response.message2 || 'Failed to create account. Please check your details.');
       }
     } catch (error) {
-      console.error('Network or unexpected error during signup:', error);
-      toast.error('A network error occurred. Please try again later.');
+      console.error('Registration error:', error);
+      let errorMessage = 'Failed to create account. Please try again.';
+
+      if (error instanceof ApiError) {
+        errorMessage = error.responseBody?.message2 || `API Error: ${error.message}`;
+      } else if (error instanceof Error) {
+        errorMessage = `An unexpected error occurred: ${error.message}`;
+      }
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
+
+  if (registrationSuccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="w-full max-w-sm sm:max-w-md">
+          <Card className="shadow-2xl border-t-4 border-green-600 rounded-xl">
+            <CardHeader className="text-center pt-10 pb-4 space-y-3">
+              <div className="flex justify-center mb-2">
+                <div className="p-3 rounded-full bg-green-100">
+                  <CheckCircle className="h-12 w-12 text-green-600" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-bold text-gray-900">
+                Account Created!
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                Please verify your email to complete setup
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-6 pt-0">
+              <div className="text-center space-y-4">
+                <div className="flex items-center justify-center p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <Mail className="h-5 w-5 text-blue-600 mr-3" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-semibold">Verification email sent to:</p>
+                    <p className="text-blue-600">{userEmail}</p>
+                  </div>
+                </div>
+                
+                <div className="text-sm text-gray-600 space-y-2">
+                  <p>We've sent a verification link to your email address.</p>
+                  <p>Please check your email and click the verification link to activate your account.</p>
+                  <p className="text-xs text-gray-500">Don't see the email? Check your spam folder.</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  onClick={() => {
+                    setRegistrationSuccess(false);
+                    setFormData({
+                      practiceName: '',
+                      firstName: '',
+                      lastName: '',
+                      email: '',
+                      password: '',
+                      confirmPassword: '',
+                      role: 'admin'
+                    });
+                  }}
+                  variant="outline"
+                  className="w-full h-11"
+                >
+                  Register Another Account
+                </Button>
+                
+                <Link href="/login" className="block">
+                  <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700">
+                    Go to Login
+                  </Button>
+                </Link>
+              </div>
+              
+              <p className="text-center text-xs text-gray-400">
+                After verifying your email, you can sign in to complete your practice setup.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     // IMPROVEMENT 1: Simplified Background

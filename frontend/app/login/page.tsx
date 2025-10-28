@@ -148,8 +148,30 @@ export default function LoginPage() {
                 </div>
               </div>
               
-              {/* Optional: Add Forgot Password Link */}
-              <div className="flex justify-end pt-1">
+              {/* Links for password and email verification */}
+              <div className="flex justify-between items-center pt-1">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!email) {
+                      toast.error('Please enter your email address first');
+                      return;
+                    }
+                    try {
+                      const response = await api.post('/auth/resend-verification', { email });
+                      if (response.success) {
+                        toast.success('Verification email sent! Check your inbox.');
+                      } else {
+                        toast.error(response.message2 || 'Failed to send verification email');
+                      }
+                    } catch (error) {
+                      toast.error('Failed to send verification email');
+                    }
+                  }}
+                  className="text-sm font-medium text-green-600 hover:text-green-500 transition-colors"
+                >
+                  Resend Verification
+                </button>
                 <Link href="/forgot-password" passHref className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors">
                   Forgot Password?
                 </Link>

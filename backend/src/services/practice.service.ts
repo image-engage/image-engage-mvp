@@ -64,6 +64,7 @@ export class PracticeService {
           first_name: firstName,
           last_name: lastName,
           role: role,
+          email_verified: false,
         })
         .select() // Select the newly created user to get its ID
         .single();
@@ -123,6 +124,11 @@ export class PracticeService {
       const isValidPassword = await bcrypt.compare(passwordPlain, user.password_hash);
       if (!isValidPassword) {
         return { success: false, message2: 'Invalid credentials.' };
+      }
+
+      // 3. Check email verification status
+      if (!user.email_verified) {
+        return { success: false, message2: 'Please verify your email address before signing in. Check your email for the verification link.' };
       }
 
       // Remove password hash from the user object before returning
@@ -455,6 +461,94 @@ export class PracticeService {
     } catch (error) {
       console.error('Error in PracticeService.createStaffUser:', error);
       return { success: false, message2: 'Internal server error during staff user creation.' };
+    }
+  }
+
+  /**
+   * Verifies user email by updating email_verified status
+   */
+  static async verifyUserEmail(userId: string): Promise<ApiResponse> {
+    try {
+      const { error } = await this.supabase
+        .from('users')
+        .update({
+          email_verified: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Database error verifying email:', error);
+        return { success: false, message2: 'Failed to verify email.' };
+      }
+
+      return {
+        success: true,
+        message2: 'Email verified successfully'
+      };
+    } catch (error) {
+      console.error('Error verifying email:', error);
+      return { success: false, message2: 'Internal server error during email verification.' };
+    }
+  }
+
+  /**
+   * Gets user by email (for password reset)
+   */
+  static async getUserByEmail(email: string): Promise<ApiResponse<User>> {
+    try {
+      const { data: user, error } = await this.supabase
+        .from('users')
+        .select('id, email, first_name, last_name')
+        .eq('email', email)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Database error retrieving user by email:', error);
+        return { success: false, message2: 'Failed to retrieve user.' };
+      }
+      if (!user) {
+        return { success: false, message2: 'User not found.' };
+      }
+
+      return {
+        success: true,
+        message2: 'User retrieved successfully',
+        data: user as User
+      };
+    } catch (error) {
+      console.error('Error retrieving user by email:', error);
+      return { success: false, message2: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Updates user password
+   */
+  static async updateUserPassword(userId: string, newPassword: string): Promise<ApiResponse> {
+    try {
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      const { error } = await this.supabase
+        .from('users')
+        .update({
+          password_hash: hashedPassword,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Database error updating password:', error);
+        return { success: false, message2: 'Failed to update password.' };
+      }
+
+      return {
+        success: true,
+        message2: 'Password updated successfully'
+      };
+    } catch (error) {
+      console.error('Error updating password:', error);
+      return { success: false, message2: 'Internal server error during password update.' };
     }
   }
 }

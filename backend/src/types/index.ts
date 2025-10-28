@@ -57,6 +57,7 @@ export interface User {
   first_name: string;
   last_name: string;
   role: 'admin' | 'staff' | 'owner';
+  email_verified?: boolean; // Email verification status
   created_at: string;
   updated_at: string;
 }
