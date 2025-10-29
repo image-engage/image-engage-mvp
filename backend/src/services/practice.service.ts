@@ -11,6 +11,35 @@ export class PracticeService {
   private static supabase: SupabaseClient = supabase; // Your Supabase client instance
 
   /**
+   * Creates a new practice only (without user)
+   */
+  static async createPracticeOnly(practiceName: string): Promise<ApiResponse<Practice>> {
+    try {
+      const { data: newPractice, error: practiceError } = await this.supabase
+        .from('practices')
+        .insert({
+          name: practiceName,
+        })
+        .select()
+        .single();
+
+      if (practiceError || !newPractice) {
+        console.error('Error creating practice:', practiceError);
+        return { success: false, message2: practiceError?.message || 'Failed to create practice.' };
+      }
+
+      return {
+        success: true,
+        message2: 'Practice created successfully!',
+        data: newPractice as Practice
+      };
+    } catch (error) {
+      console.error('Error in PracticeService.createPracticeOnly:', error);
+      return { success: false, message2: 'Internal server error during practice creation.' };
+    }
+  }
+
+  /**
    * Creates a new practice (organization) and its initial admin user.
    */
   static async createPracticeAndAdminUser(

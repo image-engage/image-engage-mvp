@@ -223,6 +223,8 @@ export interface ApiResponse<T = any> {
   message2?: string; // Using message2 as per your existing code
   data?: T;
   error?: string; // For general error messages
+  requiresMFA?: boolean; // For MFA challenge responses
+  requiresMFASetup?: boolean; // For MFA setup challenge responses
   pagination?: { // If you implement pagination
     page: number;
     limit: number;

@@ -14,6 +14,8 @@ import { api, ApiError } from '@/components/lib/api';
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmationCode, setConfirmationCode] = useState('');
+  const [email, setEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,14 +24,13 @@ export default function ResetPasswordPage() {
   
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const emailParam = searchParams.get('email');
 
   useEffect(() => {
-    if (!token) {
-      setTokenValid(false);
-      toast.error('Invalid or missing reset token');
+    if (emailParam) {
+      setEmail(emailParam);
     }
-  }, [token]);
+  }, [emailParam]);
 
   const validatePassword = (password: string) => {
     return password.length >= 8;
@@ -38,8 +39,8 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!token) {
-      toast.error('Invalid reset token');
+    if (!email || !confirmationCode) {
+      toast.error('Email and confirmation code are required');
       return;
     }
 
@@ -56,8 +57,9 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/auth/reset-password', { 
-        token, 
+      const response = await api.post('/cognito-auth/reset-password', { 
+        email,
+        confirmationCode,
         newPassword 
       });
       
@@ -190,6 +192,37 @@ export default function ResetPasswordPage() {
           <CardContent className="space-y-6 pt-0">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmationCode" className="text-sm font-medium text-gray-700">
+                  Confirmation Code
+                </Label>
+                <Input
+                  id="confirmationCode"
+                  type="text"
+                  placeholder="123456"
+                  value={confirmationCode}
+                  onChange={(e) => setConfirmationCode(e.target.value)}
+                  className="h-11 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  required
+                />
+                <p className="text-xs text-gray-500">Enter the code sent to your email</p>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="newPassword" className="text-sm font-medium text-gray-700">
                   New Password
                 </Label>
@@ -245,7 +278,7 @@ export default function ResetPasswordPage() {
               <Button 
                 type="submit" 
                 className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg" 
-                disabled={isLoading || !newPassword || !confirmPassword}
+                disabled={isLoading || !email || !confirmationCode || !newPassword || !confirmPassword}
               >
                 {isLoading ? (
                   <div className="flex items-center space-x-2">

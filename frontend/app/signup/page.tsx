@@ -79,7 +79,7 @@ export default function SignupPage() {
     setIsLoading(true);
     
     try {
-      const response = await api.post('/auth/register', {
+      const response = await api.post('/cognito-auth/register', {
         practiceName: formData.practiceName,
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -167,8 +167,14 @@ export default function SignupPage() {
                   Register Another Account
                 </Button>
                 
-                <Link href="/login" className="block">
+                <Link href={`/confirm-email?email=${encodeURIComponent(userEmail)}`} className="block">
                   <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700">
+                    Verify Email Now
+                  </Button>
+                </Link>
+                
+                <Link href="/login" className="block">
+                  <Button variant="outline" className="w-full h-11">
                     Go to Login
                   </Button>
                 </Link>

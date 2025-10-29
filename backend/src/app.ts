@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 
 // Import routes
 import authRoutes from "./routes/auth.routes";
+import cognitoAuthRoutes from "./routes/cognito-auth.routes";
 import userRoutes from "./routes/user.routes";
 import practiceRoutes from "./routes/practice.routes";
 import patientRoutes from "./routes/patient.routes";
@@ -66,6 +67,7 @@ app.get("/health", (req, res) => {
 
 // API routes
 app.use("/api/auth", authRoutes);
+app.use("/api/cognito-auth", cognitoAuthRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/practice", practiceRoutes);
 app.use("/api/patients", patientRoutes);

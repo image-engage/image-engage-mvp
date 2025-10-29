@@ -18,6 +18,8 @@
   "author": "EmageSmile",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.919.0",
+    "@aws-sdk/credential-providers": "^3.919.0",
     "@supabase/supabase-js": "^2.53.0",
     "@types/pdfkit": "^0.17.3",
     "axios": "^1.10.0",
