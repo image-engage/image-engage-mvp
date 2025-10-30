@@ -264,9 +264,12 @@ export class CognitoService {
           email: attributes.email,
           firstName: attributes.given_name,
           lastName: attributes.family_name,
+          first_name: attributes.given_name, // For compatibility
+          last_name: attributes.family_name, // For compatibility
           practiceName: attributes['custom:practice_name'],
           role: attributes['custom:role'],
           practiceId: attributes['custom:practice_id'],
+          practice_id: attributes['custom:practice_id'], // For compatibility
           emailVerified: attributes.email_verified === 'true',
         },
       };

@@ -14,8 +14,14 @@ export interface AuthRequest extends Request {
 export interface JWTPayload {
   id: string;
   userId: string; 
+  sub: string; 
   email: string;
+  given_name?: string;
+  family_name?: string;
   practiceId: string; // Ensure this is always present in your token
+  "custom:practice_id": string; // Ensure this is always present in your token
+  "custom:role": string; // Ensure this is always present in your token
+  "custom:practice_name": string; // Ensure this is always present in your token
   iat?: number; // Issued at (optional, typically added by jwt.sign)
   exp?: number; // Expiration time (optional, typically added by jwt.sign)
 }

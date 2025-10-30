@@ -7,17 +7,17 @@ export class UserController {
   static async getProfile(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
     try {
       const practiceId = req.practiceId;
-      const email = req.practiceEmail || req.user?.email;
+      const user = req.user;
       
-      if (!practiceId) {
+      if (!practiceId || !user) {
         res.status(400).json({
           success: false,
-          message2: 'Practice ID not found in token'
+          message2: 'Authentication data not found'
         });
         return;
       }
 
-      // Get practice data directly since authentication is practice-based
+      // Get practice data from Supabase
       const practiceResult = await PracticeService.getPracticeById(practiceId);
       
       if (!practiceResult.success) {
@@ -25,22 +25,21 @@ export class UserController {
         return;
       }
 
-      // Try to get user data if email is available
-      let userData = null;
-      if (email) {
-        const userResult = await PracticeService.authenticateUserByEmail(email);
-        if (userResult.success) {
-          userData = userResult.data;
-        }
-      }
+      // Build user data from Cognito token
+      const userData = {
+        id: user.sub,
+        email: user.email,
+        first_name: user.given_name || '',
+        last_name: user.family_name || '',
+        role: user['custom:role'],
+        practice_id: user['custom:practice_id'],
+        practice_data: practiceResult.data
+      };
 
-      // Return the expected structure
       res.json({
         success: true,
         message2: 'Profile retrieved successfully',
-        data: userData || {
-          practice_data: practiceResult.data
-        }
+        data: userData
       });
     } catch (error) {
       console.error('Get user profile error:', error);

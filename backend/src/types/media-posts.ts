@@ -136,8 +136,16 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     userId: string;
+    sub: string;
     email: string;
+    given_name?: string;
+    family_name?: string;
     practiceId: string;
+    "custom:practice_id": string;
+    "custom:role": string;
+    "custom:practice_name": string;
+    iat?: number;
+    exp?: number;
   };
 }
 
