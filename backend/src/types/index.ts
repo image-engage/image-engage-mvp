@@ -14,8 +14,14 @@ export interface AuthRequest extends Request {
 export interface JWTPayload {
   id: string;
   userId: string; 
+  sub: string; 
   email: string;
+  given_name?: string;
+  family_name?: string;
   practiceId: string; // Ensure this is always present in your token
+  "custom:practice_id": string; // Ensure this is always present in your token
+  "custom:role": string; // Ensure this is always present in your token
+  "custom:practice_name": string; // Ensure this is always present in your token
   iat?: number; // Issued at (optional, typically added by jwt.sign)
   exp?: number; // Expiration time (optional, typically added by jwt.sign)
 }
@@ -223,6 +229,8 @@ export interface ApiResponse<T = any> {
   message2?: string; // Using message2 as per your existing code
   data?: T;
   error?: string; // For general error messages
+  requiresMFA?: boolean; // For MFA challenge responses
+  requiresMFASetup?: boolean; // For MFA setup challenge responses
   pagination?: { // If you implement pagination
     page: number;
     limit: number;

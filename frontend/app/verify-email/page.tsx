@@ -28,7 +28,19 @@ export default function VerifyEmailPage() {
       }
 
       try {
-        const response = await api.post('/auth/verify-email', { token });
+        const email = searchParams.get('email');
+        const code = searchParams.get('code');
+        
+        if (!email || !code) {
+          setVerificationStatus('error');
+          setErrorMessage('Missing email or confirmation code in URL');
+          return;
+        }
+        
+        const response = await api.post('/cognito-auth/confirm-signup', { 
+          email, 
+          confirmationCode: code 
+        });
         
         if (response.success) {
           setVerificationStatus('success');

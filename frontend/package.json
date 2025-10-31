@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-amplify/ui-react": "^6.13.1",
     "@capacitor/android": "^7.4.3",
     "@capacitor/camera": "^7.0.2",
     "@capacitor/cli": "^7.4.3",
@@ -49,6 +50,7 @@
     "@types/react": "18.2.22",
     "@types/react-dom": "18.2.7",
     "autoprefixer": "10.4.15",
+    "aws-amplify": "^6.15.7",
     "axios": "^1.11.0",
     "ci": "^2.3.0",
     "class-variance-authority": "^0.7.0",
@@ -66,6 +68,7 @@
     "next": "13.5.1",
     "next-themes": "^0.3.0",
     "postcss": "8.4.30",
+    "qrcode": "^1.5.4",
     "react": "18.2.0",
     "react-day-picker": "^8.10.1",
     "react-dom": "18.2.0",
