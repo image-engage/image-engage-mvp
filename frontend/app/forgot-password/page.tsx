@@ -73,6 +73,12 @@ export default function ForgotPasswordPage() {
               </div>
 
               <div className="space-y-3">
+                <Link href={`/reset-password?email=${encodeURIComponent(email)}`} className="block">
+                  <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700">
+                    Reset Password Now
+                  </Button>
+                </Link>
+                
                 <Button
                   onClick={() => setEmailSent(false)}
                   variant="outline"
@@ -82,7 +88,7 @@ export default function ForgotPasswordPage() {
                 </Button>
                 
                 <Link href="/login" className="block">
-                  <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700">
+                  <Button variant="ghost" className="w-full h-11">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Login
                   </Button>

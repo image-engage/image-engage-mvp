@@ -5,7 +5,6 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 
 // Import routes
-import authRoutes from "./routes/auth.routes";
 import cognitoAuthRoutes from "./routes/cognito-auth.routes";
 import testAuthRoutes from "./routes/test-auth.routes";
 import userRoutes from "./routes/user.routes";
@@ -67,8 +66,7 @@ app.get("/health", (req, res) => {
 });
 
 // API routes
-app.use("/api/auth", authRoutes);
-app.use("/api/cognito-auth", cognitoAuthRoutes);
+app.use("/api/cognito-auth", cognitoAuthRoutes); // Using Cognito for all auth operations
 app.use("/api/test-auth", testAuthRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/practice", practiceRoutes);

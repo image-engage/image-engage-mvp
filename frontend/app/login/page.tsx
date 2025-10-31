@@ -311,9 +311,14 @@ export default function LoginPage() {
                 >
                   Verify Email
                 </button>
-                <Link href="/forgot-password" passHref className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors">
-                  Forgot Password?
-                </Link>
+                <div className="flex space-x-3">
+                  <Link href="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                    Forgot Password?
+                  </Link>
+                  <Link href="/reset-password" className="text-sm font-medium text-orange-600 hover:text-orange-500 transition-colors">
+                    Reset Password
+                  </Link>
+                </div>
               </div>
 
               {/* IMPROVEMENT 4: Primary Action Button with Integrated Loading */}
