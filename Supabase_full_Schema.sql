@@ -71,16 +71,25 @@ CREATE TABLE public.media_files (
 	storage_url text NOT NULL,
 	file_size int8 DEFAULT 0 NOT NULL,
 	upload_timestamp timestamptz DEFAULT now() NOT NULL,
+	quality_score int DEFAULT 0 NULL,
+	brightness_level int DEFAULT 0 NULL,
+	contrast_score int DEFAULT 0 NULL,
+	sharpness_rating int DEFAULT 0 NULL,
+	quality_status text DEFAULT 'pending'::text NULL,
+	quality_feedback text NULL,
 	created_at timestamptz DEFAULT now() NULL,
 	updated_at timestamptz DEFAULT now() NULL,
 	CONSTRAINT media_files_category_check CHECK ((category = ANY (ARRAY['before'::text, 'after'::text, 'other'::text]))),
 	CONSTRAINT media_files_media_type_check CHECK ((media_type = ANY (ARRAY['photo'::text, 'video'::text]))),
+	CONSTRAINT media_files_quality_status_check CHECK ((quality_status = ANY (ARRAY['pending'::text, 'pass'::text, 'fail'::text, 'accepted'::text]))),
 	CONSTRAINT media_files_pkey PRIMARY KEY (id)
 );
 CREATE INDEX idx_media_files_category ON public.media_files USING btree (category);
 CREATE INDEX idx_media_files_media_type ON public.media_files USING btree (media_type);
 CREATE INDEX idx_media_files_practice_session ON public.media_files USING btree (practice_id, patient_photo_id);
 CREATE INDEX idx_media_files_upload_timestamp ON public.media_files USING btree (upload_timestamp DESC);
+CREATE INDEX idx_media_files_quality_score ON public.media_files USING btree (quality_score DESC);
+CREATE INDEX idx_media_files_quality_status ON public.media_files USING btree (quality_status);
 
 -- Table Triggers
 

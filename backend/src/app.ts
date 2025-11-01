@@ -23,6 +23,9 @@ import testSessionsRoutes from "./routes/test-sessions.routes"; // Assuming this
 import dashboardRoutes from "./routes/dashboard.routes"; // Assuming this exists
 import sessionRoutes from "./routes/session.routes"; // Assuming this exists
 import settingsRoutes from "./routes/settings.routes"; // Assuming this exists
+import downloadRoutes from "./routes/download.routes";
+import comparisonRoutes from "./routes/comparison.routes";
+import mediaUpdateRoutes from "./routes/media-update.routes";
 
 // Load environment variables
 dotenv.config();
@@ -84,6 +87,9 @@ app.use("/api/completed-sessions-old", completedSessionsRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/download", downloadRoutes);
+app.use("/api/comparison", comparisonRoutes);
+app.use("/api/media", mediaUpdateRoutes);
 
 // 404 handler
 app.use("*", (req, res) => {

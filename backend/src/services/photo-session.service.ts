@@ -2,6 +2,7 @@
 import { supabase } from '../config/database'; // Assuming this imports your Supabase client
 import { ApiResponse, PatientConsent, PhotoSession, MediaFile } from '../types';
 import { PatientService } from './patient.service'; // 👈 Import PatientService
+import { EnhancedQualityService } from './enhanced-quality.service';
 import { v4 as uuidv4 } from 'uuid';
 import { Express } from 'express'; // Import Express for Multer file type
 
@@ -67,10 +68,21 @@ export class PhotoSessionService {
       // If consent management is needed, add a 'consent_status' column to the 'patients' table
       // or a separate 'patient_consents' table and re-implement the check.
 
-      // Step 2: Upload files to Supabase Storage
+      // Step 2: Upload files to Supabase Storage and analyze quality
       const uploadedFileUrls: string[] = [];
+      const mediaRecords: any[] = [];
       const uploadPromises = files.map(async (file, index) => {
         const category = categories[index]; // Get the category for the current file
+
+        // Analyze image quality for photos
+        let qualityMetrics = null;
+        if (file.mimetype.startsWith('image/')) {
+          try {
+            qualityMetrics = await EnhancedQualityService.analyzeImage(file.buffer);
+          } catch (error) {
+            console.error('Quality analysis failed:', error);
+          }
+        }
 
         // Construct the folder path based on file type and category
         let fullPath = '';
@@ -106,13 +118,46 @@ export class PhotoSessionService {
           throw new Error(uploadResult.message2 || `Failed to upload file: ${file.originalname}`);
         }
         uploadedFileUrls.push(uploadResult.data!.url); // Store the public URL
+        
+        // Store media record with quality metrics
+        const mediaRecord = {
+          practice_id: practiceId,
+          patient_id: patientId,
+          patient_photo_id: patientPhotoId,
+          category: category,
+          media_type: file.mimetype.startsWith('image/') ? 'photo' : 'video',
+          file_type: file.mimetype,
+          original_filename: file.originalname,
+          storage_path: fullPath,
+          storage_url: uploadResult.data!.url,
+          file_size: file.size,
+          quality_score: qualityMetrics?.qualityScore || 0,
+          brightness_level: qualityMetrics?.brightnessLevel || 0,
+          contrast_score: qualityMetrics?.contrastScore || 0,
+          sharpness_rating: qualityMetrics?.sharpnessRating || 0,
+          quality_status: qualityMetrics?.status || 'pending',
+          quality_feedback: qualityMetrics?.feedback || null
+        };
+        mediaRecords.push(mediaRecord);
+        
         return uploadResult;
       });
 
       // Wait for all file uploads to complete. If any promise rejects, Promise.all will reject.
       await Promise.all(uploadPromises);
 
-      // Step 3: Create the photo session record and update workflow state
+      // Step 3: Save media files with quality metrics to database
+      if (mediaRecords.length > 0) {
+        const { error: mediaError } = await supabase
+          .from('media_files')
+          .insert(mediaRecords);
+        
+        if (mediaError) {
+          console.error('Failed to save media records:', mediaError);
+        }
+      }
+
+      // Step 4: Create the photo session record and update workflow state
       const baseStorageFolderPath = `${practiceId}/_RawPhotos/${categories[0] || 'Other'}/${patientPhotoId}/`;
 
       const sessionResult = await this.createPhotoSessionRecord(
@@ -129,7 +174,7 @@ export class PhotoSessionService {
         return sessionResult;
       }
 
-      // Step 4: Update workflow session state
+      // Step 5: Update workflow session state
       await this.updateWorkflowSession(practiceId, patientId, categories);
 
       return {

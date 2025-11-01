@@ -144,4 +144,29 @@ export class WorkflowController {
       return res.status(500).json({ error: 'Internal server error.' });
     }
   }
+
+  /**
+   * Gets workflow statistics for the dashboard.
+   * @param {AuthenticatedRequest} req - The Express request object with user data.
+   * @param {Response} res - The Express response object.
+   */
+  static async getWorkflowStats(req: AuthenticatedRequest, res: Response) {
+    try {
+      const practiceId = req.user?.practiceId;
+      if (!practiceId) {
+        return res.status(400).json({ error: 'Practice ID is required.' });
+      }
+
+      const result = await WorkflowService.getWorkflowStats(practiceId);
+
+      if (result.error) {
+        return res.status(500).json({ error: result.error });
+      }
+
+      return res.status(200).json({ success: true, data: result.stats });
+    } catch (err) {
+      console.error('Error in getWorkflowStats controller:', err);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
 }

@@ -22,4 +22,7 @@ router.post('/start-photo-session', WorkflowController.startPhotoSession);
 // Endpoint to upload a photo to a session
 router.post('/sessions/:sessionId/upload-photo', WorkflowController.uploadPhoto);
 
+// Endpoint to get workflow statistics
+router.get('/stats', WorkflowController.getWorkflowStats);
+
 export default router;

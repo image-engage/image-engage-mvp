@@ -2,6 +2,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { PhotoSessionService } from '../services/photo-session.service';
+import { EnhancedQualityService } from '../services/enhanced-quality.service';
 import { ApiResponse } from '../types';
 
 export class PhotoSessionController {
@@ -151,6 +152,51 @@ console.log('sessionId', sessionId)
       res.status(500).json({
         success: false,
         message2: 'Failed to create workflow session'
+      });
+    }
+  }
+
+  /**
+   * Enhanced quality check for images with detailed metrics
+   */
+  static async checkImageQuality(req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> {
+    try {
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const imageFile = files?.['image']?.[0];
+      
+      if (!imageFile) {
+        res.status(400).json({
+          success: false,
+          message2: 'Image file is required'
+        });
+        return;
+      }
+
+      const qualityMetrics = await EnhancedQualityService.analyzeImage(imageFile.buffer);
+      
+      res.json({
+        success: true,
+        data: {
+          status: qualityMetrics.status.toUpperCase(),
+          reason: qualityMetrics.feedback,
+          qualityScore: qualityMetrics.qualityScore,
+          metrics: {
+            brightness: qualityMetrics.brightnessLevel,
+            contrast: qualityMetrics.contrastScore,
+            sharpness: qualityMetrics.sharpnessRating
+          },
+          recommendations: qualityMetrics.recommendations,
+          data: {
+            isBlurry: qualityMetrics.sharpnessRating < 40,
+            focusScore: qualityMetrics.sharpnessRating / 100
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Quality check error:', error);
+      res.status(500).json({
+        success: false,
+        message2: 'Failed to analyze image quality'
       });
     }
   }

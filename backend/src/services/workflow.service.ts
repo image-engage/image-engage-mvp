@@ -210,4 +210,72 @@ export class WorkflowService {
       return { error: 'Failed to upload photo.' };
     }
   }
+
+  /**
+   * Gets workflow statistics for the dashboard.
+   * @param {string} practiceId - The ID of the practice.
+   * @returns {Promise<{ stats: any, error?: string }>}
+   */
+  static async getWorkflowStats(practiceId: string) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Get total consents
+      const { data: consents, error: consentsError } = await supabase
+        .from('consent_forms')
+        .select('id')
+        .eq('practice_id', practiceId);
+
+      if (consentsError) throw consentsError;
+
+      // Get waiting patients from the actual workflow endpoint
+      const waitingResult = await this.getWaitingPatients(practiceId);
+      const waitingPatients = waitingResult.patients || [];
+
+
+
+      // Get photos taken today
+      const { data: todayPhotos, error: photosError } = await supabase
+        .from('media_files')
+        .select('id')
+        .eq('practice_id', practiceId)
+        .gte('created_at', `${today}T00:00:00.000Z`)
+        .lt('created_at', `${today}T23:59:59.999Z`);
+
+      if (photosError) throw photosError;
+
+      // Get completed sessions (sessions with both before and after photos)
+      const { data: photoSessions, error: sessionsError } = await supabase
+        .from('photo_sessions')
+        .select('id, photo_type, patient_id')
+        .eq('practice_id', practiceId);
+
+      if (sessionsError) throw sessionsError;
+
+      // Count completed sessions (patients with both before and after sessions)
+      const patientSessions = photoSessions.reduce((acc: any, session: any) => {
+        if (!acc[session.patient_id]) {
+          acc[session.patient_id] = { before: false, after: false };
+        }
+        acc[session.patient_id][session.photo_type] = true;
+        return acc;
+      }, {});
+
+      const completedSessions = Object.values(patientSessions).filter(
+        (sessions: any) => sessions.before && sessions.after
+      ).length;
+
+      return {
+        stats: {
+          totalConsents: consents?.length || 0,
+          waitingPatients: waitingPatients?.length || 0,
+          photosToday: todayPhotos?.length || 0,
+          completedSessions
+        }
+      };
+    } catch (err) {
+      console.error('Supabase error fetching workflow stats:', err);
+      return { error: 'Failed to fetch workflow statistics.' };
+    }
+  }
 }

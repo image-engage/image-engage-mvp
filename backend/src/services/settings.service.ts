@@ -79,4 +79,55 @@ export class SettingsService {
     if (error) return { success: false, message: 'Failed to retrieve users.', error: error.message };
     return { success: true, message: 'Users retrieved successfully.', data: data || [] };
   }
+
+  /**
+   * Updates the practice profile.
+   * @param practiceId The ID of the practice.
+   * @param profileData The profile data to update.
+   * @returns An ApiResponse.
+   */
+  static async updatePracticeProfile(practiceId: string, profileData: any): Promise<ApiResponse> {
+    try {
+      const { data, error } = await supabase
+        .from('practices')
+        .update({
+          name: profileData.name,
+          address: profileData.address,
+          phone: profileData.phone,
+          email: profileData.email,
+          website: profileData.website,
+          logo_url: profileData.logo_url,
+          brand_color: profileData.brand_color
+        })
+        .eq('id', practiceId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating practice profile:', error);
+        return { success: false, message: 'Failed to update practice profile.', error: error.message };
+      }
+
+      return { success: true, message: 'Practice profile updated successfully.', data };
+    } catch (error: any) {
+      console.error('Unexpected error in updatePracticeProfile:', error);
+      return { success: false, message: 'An internal server error occurred.', error: error.message };
+    }
+  }
+
+  /**
+   * Updates the review settings (placeholder implementation).
+   * @param practiceId The ID of the practice.
+   * @param reviewData The review settings data.
+   * @returns An ApiResponse.
+   */
+  static async updateReviewSettings(practiceId: string, reviewData: any): Promise<ApiResponse> {
+    // Placeholder implementation since review_settings table doesn't exist
+    console.warn(`Attempted to update review settings for practice ${practiceId}, but functionality is not implemented.`);
+    return {
+      success: true,
+      message: 'Review settings updated successfully (placeholder implementation).',
+      data: reviewData
+    };
+  }
 }

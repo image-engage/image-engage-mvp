@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Users, FileText, Image as ImageIcon, TrendingUp, Calendar, Clock, Archive, QrCode, Camera, ArrowRight, Activity, ClipboardList } from 'lucide-react'; // Added icons, renamed Image
 import { api } from '@/components/lib/api';
 import Link from 'next/link'; // Added Link for quick actions
+import QualityDashboard from '@/components/QualityDashboard';
 
 // Define a type for the API response
 interface UserProfile {
@@ -122,13 +123,10 @@ export default function DashboardPage() {
       {/* Header and Greeting */}
       <div className="pb-8 border-b border-gray-200">
         <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-          Hello, {isLoading ? 'Loading...' : userData?.first_name || 'Admin'}!
+          Hello, {JSON.parse(localStorage.getItem('practice') || '{}')?.name || 'Practice'}!
         </h1>
         <p className="text-xl text-gray-500 mt-1">
-          {isLoading ? 'Fetching practice data...' : 
-           userData?.practice_data ? `${userData.practice_data.name} Dashboard Overview` : 
-           'EmageSmile Admin Console'
-          }
+          {isLoading ? 'Fetching practice data...' : 'Dashboard Overview'}
         </p>
       </div>
 
@@ -192,8 +190,19 @@ export default function DashboardPage() {
             </div>
         </div>
 
-        {/* RIGHT COLUMN (1/3 width) - Activity Feed / Analytics */}
+        {/* RIGHT COLUMN (1/3 width) - Quality Dashboard */}
         <div className="lg:col-span-1 space-y-8">
+            
+            {/* Quality Dashboard */}
+            <QualityDashboard 
+              stats={{
+                averageScore: 78,
+                totalPhotos: 245,
+                passRate: 82,
+                commonIssues: ['Low lighting detected', 'Camera shake', 'Poor focus'],
+                trendDirection: 'up'
+              }}
+            />
             
             {/* Recent Activity/Analytics Card */}
             {/* <Card className="shadow-xl border-t-4 border-indigo-500 h-full">

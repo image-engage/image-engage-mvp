@@ -122,13 +122,14 @@ const mapRawMedia = (sessionData: any, patientId: string): MediaFile[] => {
 
     return sessionData.file_urls.map((url: string, index: number) => {
         const fileName = url.substring(url.lastIndexOf('/') + 1);
+        const isVideo = fileName.toLowerCase().match(/\.(mp4|mov|avi|webm|mkv)$/i);
         return {
         // We generate a client-side ID since the session record doesn't have individual file IDs
         id: `${sessionData.id}-${index}`,
         patientId: patientId,
         fileName: fileName,
-        fileType: 'image', // Assuming all files fetched are images for simplicity
-        mediaCategory: (categories[index] || 'other') as MediaCategory,
+        fileType: isVideo ? 'video' : 'image',
+        mediaCategory: isVideo ? 'other' : (categories[index] || 'other') as MediaCategory,
         fileSize: 0, // file_size is not available in photo_sessions table
         uploadDate: new Date(sessionData.session_date),
         preview: url,
@@ -161,11 +162,17 @@ const RawMediaCard = ({ file, patientName, onViewDetails, selectable, isSelected
             </div>
         )}
         <div className="aspect-square bg-gray-100 relative">
-            <img
-                src={file.preview || 'https://placehold.co/300x300/e2e8f0/000?text=No+Preview'}
-                alt={file.fileName}
-                className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-            />
+            {file.fileType === 'video' ? (
+                <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                    <Video className="h-16 w-16 text-white" />
+                </div>
+            ) : (
+                <img
+                    src={file.preview || 'https://placehold.co/300x300/e2e8f0/000?text=No+Preview'}
+                    alt={file.fileName}
+                    className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                />
+            )}
             {/* Adjusted Badge positioning and content for better fit on small screens */}
             <div className="absolute top-2 right-2 flex space-x-1">
                 <Badge variant="secondary" className="text-xs p-1 h-auto leading-none">{file.fileType === 'image' ? 'IMG' : <Video className='h-3 w-3' />}</Badge>
@@ -213,6 +220,7 @@ export default function PatientMediaDashboard() {
     const [selectedFilesForBulk, setSelectedFilesForBulk] = useState<string[]>([]);
     const [dateRange, setDateRange] = useState<{ from?: Date, to?: Date }>({});
     const [activeMediaTab, setActiveMediaTab] = useState<MediaCategory | 'all'>('all');
+    const [mediaSearchTerm, setMediaSearchTerm] = useState('');
     
     const [isSlideshowVisible, setIsSlideshowVisible] = useState(false);
     const [slideshowImages, setSlideshowImages] = useState<MediaFile[]>([]);
@@ -227,7 +235,17 @@ export default function PatientMediaDashboard() {
             setIsLoadingPatients(true);
             try {
                 const patientsData = await api.get<Patient[]>('/patients');
-                setAllPatients(patientsData);
+                const consentsResponse = await api.get('/consents');
+                const consents = Array.isArray(consentsResponse?.data) ? consentsResponse.data : [];
+                
+                const patientsWithProcedures = patientsData.map(patient => {
+                    const patientConsent = consents.find((c: any) => c.patient_id === patient.id);
+                    return {
+                        ...patient,
+                        procedure_type: patientConsent?.procedure_type || 'General'
+                    };
+                });
+                setAllPatients(patientsWithProcedures);
                 
                 // Keep original logic for initial selection, but set mobileView based on selection
                 if (patientsData && patientsData.length > 0) {
@@ -337,9 +355,16 @@ export default function PatientMediaDashboard() {
             filtered = filtered.filter(m => m.mediaCategory === activeMediaTab);
         }
 
+        // Filter by search term
+        if (mediaSearchTerm) {
+            filtered = filtered.filter(m => 
+                m.fileName.toLowerCase().includes(mediaSearchTerm.toLowerCase())
+            );
+        }
+
         filtered.sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime());
         return filtered;
-    }, [mediaFiles, selectedPatientId, dateRange, activeMediaTab]);
+    }, [mediaFiles, selectedPatientId, dateRange, activeMediaTab, mediaSearchTerm]);
 
 
     // --- HANDLERS (ADJUSTED FOR MOBILE) ---
@@ -349,18 +374,48 @@ export default function PatientMediaDashboard() {
         toast.info('Patient filters cleared.');
     };
 
-    const handleBulkDownload = () => {
+    const handleBulkDownload = async () => {
       const filesToDownload = mediaFiles.filter(m => selectedFilesForBulk.includes(m.id));
       if (filesToDownload.length === 0) {
         toast.error("No files selected for download.");
         return;
       }
-      filesToDownload.forEach(file => {
-        // Mock download trigger: opens file URL in a new tab
-        window.open(file.preview, '_blank'); 
-      });
-      toast.success(`${filesToDownload.length} files initiated download.`);
-      setSelectedFilesForBulk([]);
+
+      try {
+        toast.loading('Creating zip file...', { id: 'zip-download' });
+        
+        const fileUrls = filesToDownload.map(file => file.preview);
+        const patientName = selectedPatient ? `${selectedPatient.first_name}_${selectedPatient.last_name}` : 'patient';
+        
+        const response = await fetch(`${API_BASE_URL}/download/zip`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getAuthToken()}`
+          },
+          body: JSON.stringify({ fileUrls, patientName })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create zip file');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${patientName}_media_${new Date().toISOString().split('T')[0]}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast.success(`Downloaded ${filesToDownload.length} files as ZIP`, { id: 'zip-download' });
+        setSelectedFilesForBulk([]);
+      } catch (error) {
+        console.error('Zip download error:', error);
+        toast.error('Failed to download ZIP file', { id: 'zip-download' });
+      }
     };
 
     const handleCreateSlideshow = () => {
@@ -378,6 +433,72 @@ export default function PatientMediaDashboard() {
 
       setSlideshowImages(filesForSlideshow);
       setIsSlideshowVisible(true);
+    };
+
+    const handleGenerateComparison = async () => {
+      if (!selectedPatient) {
+        toast.error("A patient must be selected.");
+        return;
+      }
+
+      const selectedFiles = mediaFiles.filter(m => selectedFilesForBulk.includes(m.id));
+      const beforeImages = selectedFiles.filter(f => f.mediaCategory === 'before');
+      const afterImages = selectedFiles.filter(f => f.mediaCategory === 'after');
+
+      if (beforeImages.length === 0 || afterImages.length === 0) {
+        toast.error("Please select at least one 'before' and one 'after' image.");
+        return;
+      }
+
+      if (beforeImages.length > 1 || afterImages.length > 1) {
+        toast.error("Please select exactly one 'before' and one 'after' image for comparison.");
+        return;
+      }
+
+      toast.loading("Generating comparison...", { id: 'comparison-toast' });
+
+      try {
+        const token = getAuthToken();
+        const response = await fetch(`${API_BASE_URL}/comparison/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            patientId: selectedPatient.id,
+            beforeImageId: beforeImages[0].id,
+            afterImageId: afterImages[0].id
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate comparison');
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+          // Download the HTML file
+          const htmlBlob = new Blob([result.data.htmlContent], { type: 'text/html' });
+          const url = window.URL.createObjectURL(htmlBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = result.data.filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          
+          toast.success('Before/After comparison generated successfully!', { id: 'comparison-toast' });
+          setSelectedFilesForBulk([]);
+        } else {
+          throw new Error('Failed to generate comparison');
+        }
+      } catch (error) {
+        console.error('Comparison generation error:', error);
+        toast.error('Failed to generate comparison', { id: 'comparison-toast' });
+      }
     };
 
     const handleSaveToPdf = async () => {
@@ -457,10 +578,32 @@ export default function PatientMediaDashboard() {
         return mediaFiles.filter(m => m.patientId === selectedPatientId && m.mediaCategory === category).length;
     }, [mediaFiles, selectedPatientId]);
 
-    const handleUpdateMedia = (updatedFile: MediaFile) => {
-        setMediaFiles(prev => prev.map(m => m.id === updatedFile.id ? updatedFile : m));
-        setSelectedMedia(updatedFile); // Keep the modal updated
-        toast.success("Media file details updated.");
+    const handleUpdateMedia = async (updatedFile: MediaFile) => {
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`${API_BASE_URL}/media/update/${updatedFile.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    category: updatedFile.mediaCategory,
+                    notes: updatedFile.dentalAssistantNotes
+                })
+            });
+
+            if (response.ok) {
+                setMediaFiles(prev => prev.map(m => m.id === updatedFile.id ? updatedFile : m));
+                setSelectedMedia(updatedFile);
+                toast.success("Media file updated successfully.");
+            } else {
+                throw new Error('Failed to update media file');
+            }
+        } catch (error) {
+            console.error('Error updating media:', error);
+            toast.error("Failed to update media file.");
+        }
     }
     
     // 👈 NEW: Handler to select patient and switch to media view on mobile
@@ -532,7 +675,7 @@ export default function PatientMediaDashboard() {
                                 >
                                     <h4 className="font-medium text-base truncate">{patient.first_name} {patient.last_name}</h4> {/* Increased text size for mobile touch targets */}
                                     <div className="flex items-center justify-between text-xs text-gray-500 mt-0.5">
-                                        <span className="truncate">{patient.procedure_type || 'N/A'}</span>
+                                        <span className="truncate">{patient.procedure_type}</span>
                                     </div>
                                 </div>
                             ))}
@@ -562,7 +705,7 @@ export default function PatientMediaDashboard() {
                                     <h1 className="text-xl md:text-2xl font-bold text-gray-900">{selectedPatient.first_name} {selectedPatient.last_name}</h1>
                                     {/* Compact details for mobile, expanding for desktop */}
                                     <div className="flex flex-wrap space-x-2 md:space-x-3 mt-0.5 md:mt-1 text-xs md:text-sm text-gray-600">
-                                        <span className="font-medium">{selectedPatient.procedure_type || 'N/A'}</span>
+                                        <span className="font-medium">{selectedPatient.procedure_type}</span>
                                         <span className="hidden md:inline">•</span>
                                         <span className="hidden md:inline">{selectedPatient.email}</span>
                                         <span className="hidden md:inline">•</span>
@@ -589,6 +732,19 @@ export default function PatientMediaDashboard() {
                         ) : (
                             <Tabs value={activeMediaTab} onValueChange={(value: any) => setActiveMediaTab(value as MediaCategory | 'all')} className="w-full">
                                 
+                                {/* Media Search */}
+                                <div className="mb-4">
+                                    <div className="relative max-w-md">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                                        <Input 
+                                            placeholder="Search photos by filename..." 
+                                            value={mediaSearchTerm} 
+                                            onChange={(e) => setMediaSearchTerm(e.target.value)} 
+                                            className="pl-10" 
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* Select All & Bulk Actions BAR */}
                                 <div className="mb-4">
                                     {selectedFilesForBulk.length > 0 ? (
@@ -596,12 +752,15 @@ export default function PatientMediaDashboard() {
                                             <span className="text-sm font-semibold text-blue-700">{selectedFilesForBulk.length} files selected</span>
                                             <div className="flex space-x-3">
                                                 <Button size="sm" variant="secondary" onClick={() => setSelectedFilesForBulk([])}><X className="h-4 w-4 mr-1" />Clear</Button> {/* Shorten button text */}
-                                                <Button size="sm" onClick={handleBulkDownload}><Download className="h-4 w-4 mr-1" />Download</Button> {/* Shorten button text */}
+                                                <Button size="sm" onClick={handleBulkDownload}><Download className="h-4 w-4 mr-1" />Download ZIP</Button>
                                                 <Button size="sm" variant="outline" onClick={handleSaveToPdf}>
                                                   <FileText className="h-4 w-4 mr-1" /> Save to PDF
                                                 </Button>
                                                 <Button size="sm" variant="default" onClick={handleCreateSlideshow} className="bg-green-600 hover:bg-green-700">
                                                   <Play className="h-4 w-4 mr-1" /> Slideshow
+                                                </Button>
+                                                <Button size="sm" variant="default" onClick={handleGenerateComparison} className="bg-purple-600 hover:bg-purple-700">
+                                                  <FileText className="h-4 w-4 mr-1" /> Compare
                                                 </Button>
                                             </div>
                                         </div>
@@ -670,15 +829,21 @@ export default function PatientMediaDashboard() {
             {/* Media Details Modal (Adjusted size for mobile) */}
             {selectedMedia && (
                 <Dialog open={!!selectedMedia} onOpenChange={() => setSelectedMedia(null)}>
-                    <DialogContent className="max-w-xs md:max-w-4xl max-h-[95vh] overflow-y-auto"> {/* Reduced max-width */}
+                    <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="text-xl md:text-2xl">{selectedMedia.fileName}</DialogTitle> {/* Smaller title */}
                             <DialogDescription className="text-sm">Details for this media file from **{selectedPatient?.first_name} {selectedPatient?.last_name}**</DialogDescription>
                         </DialogHeader>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-4"> {/* Reduced gap */}
                             <div className="relative rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center p-2">
-                                <img src={selectedMedia.preview} alt={selectedMedia.fileName} className="w-full h-auto max-h-[40vh] md:max-h-[50vh] object-contain rounded-md" /> {/* Reduced max-height */}
-                            </div>
+                                {selectedMedia.fileType === 'video' ? (
+                                    <div className="w-full h-[40vh] md:h-[50vh] bg-gray-800 flex flex-col items-center justify-center text-white">
+                                        <Video className="h-16 w-16 mb-4" />
+                                        <p className="text-lg font-medium">Download to view video</p>
+                                    </div>
+                                ) : (
+                                    <img src={selectedMedia.preview} alt={selectedMedia.fileName} className="w-full h-auto max-h-[40vh] md:max-h-[50vh] object-contain rounded-md" />
+                                )}                            </div>
                             <div className="space-y-3"> {/* Reduced vertical spacing */}
                                 <Badge className={`text-sm font-medium py-1 px-3 ${selectedMedia.mediaStatus === 'uploaded' ? 'bg-purple-100 text-purple-800' : selectedMedia.mediaStatus === 'pending_editing' ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}`}>Status: {selectedMedia.mediaStatus.replace(/_/g, ' ')}</Badge>
                                 

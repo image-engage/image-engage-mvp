@@ -88,36 +88,43 @@ export default function ConsentsPage() {
       const response = await api.get(`/consents/${consent.id}/download`, token);
       
       if (response.success && response.data?.url) {
+        const url = response.data.url;
         
-        const a = document.createElement('a');
         if (download) {
-          // Fetch the file as a blob to force download
-          const fileResponse = await fetch(response.data.url);
-          const blob = await fileResponse.blob();
-          a.href = URL.createObjectURL(blob);
-        } else {
-          a.href = response.data.url;
-          a.target = '_blank';
-        }
-        a.download = `consent_${consent.firstName}_${consent.lastName}.pdf`;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        
-        setTimeout(() => {
-          if (document.body.contains(a)) {
+          // For data URLs, create a downloadable file
+          if (url.startsWith('data:')) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `consent_${consent.firstName}_${consent.lastName}.html`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          } else {
+            // For regular URLs, fetch and download
+            const fileResponse = await fetch(url);
+            const blob = await fileResponse.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `consent_${consent.firstName}_${consent.lastName}.pdf`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(a.href);
           }
-        }, 100);
+        } else {
+          // For viewing, open in new tab
+          window.open(url, '_blank');
+        }
         
-        toast.success('Consent form downloaded successfully!');
+        toast.success(download ? 'Consent form downloaded successfully!' : 'Consent form opened in new tab!');
       } else {
-        toast.error('Failed to download consent form.');
+        toast.error('Failed to access consent form.');
       }
     } catch (err) {
       console.error('Download error:', err);
-      toast.error('Failed to download consent form.');
+      toast.error('Failed to access consent form.');
     }
   };
 

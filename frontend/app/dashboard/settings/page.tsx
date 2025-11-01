@@ -87,12 +87,12 @@ export default function SettingsPage() {
       const [profileRes, reviewRes, usersRes] = await Promise.all([
         api.get('/settings/practice-profile', token),
         api.get('/settings/review-settings', token),
-        api.get<User[]>('/settings/users', token),
+        api.get('/settings/users', token),
       ]);
 
-      if (profileRes) setProfile(profileRes);
-      if (reviewRes) setReviewSettings(reviewRes);
-      if (usersRes) setUsers(usersRes);
+      if (profileRes?.success && profileRes.data) setProfile(profileRes.data);
+      if (reviewRes?.success && reviewRes.data) setReviewSettings(reviewRes.data);
+      if (usersRes?.success && usersRes.data) setUsers(usersRes.data);
 
     } catch (err) {
       console.error('Failed to fetch settings:', err);
@@ -150,10 +150,10 @@ export default function SettingsPage() {
         response = await api.put('/settings/review-settings', reviewSettings, token);
       }
 
-      if (response) {
+      if (response?.success) {
         toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully!`);
       } else {
-        throw new Error('Failed to save settings.');
+        throw new Error(response?.message || 'Failed to save settings.');
       }
     } catch (err) {
       console.error(`Failed to save ${section} settings:`, err);

@@ -51,48 +51,30 @@ export default function WorkflowPage() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      let apiPatients: any[] = [];
       try {
-        const response = await api.get<ApiResponse<any[]>>('/photo-session/waiting-patients');
-        apiPatients = Array.isArray(response?.data) ? response.data : [];
-      } catch (error: any) {
-        console.error('Error fetching waiting patients:', error);
-        apiPatients = [];
-      }
-
-      let allSessions: any[] = [];
-      try {
-        const storedSessions = localStorage.getItem('patientSessions');
-        if (storedSessions) {
-          const parsed = JSON.parse(storedSessions);
-          allSessions = Array.isArray(parsed) ? parsed : [];
+        const token = localStorage.getItem('token');
+        const response = await api.get('/workflow/stats', token || undefined);
+        
+        if (response.success && response.data) {
+          setStats(response.data);
+        } else {
+          console.error('Failed to fetch workflow stats:', response);
+          setStats({
+            totalConsents: 0,
+            waitingPatients: 0,
+            photosToday: 0,
+            completedSessions: 0,
+          });
         }
       } catch (error) {
-        console.error('Error parsing stored sessions:', error);
-        allSessions = [];
+        console.error('Error fetching workflow stats:', error);
+        setStats({
+          totalConsents: 0,
+          waitingPatients: 0,
+          photosToday: 0,
+          completedSessions: 0,
+        });
       }
-
-      const newStats = {
-        totalConsents: allSessions.length,
-        waitingPatients: apiPatients.length,
-        photosToday: allSessions.reduce((acc: number, session: any) => {
-          if (!session || typeof session !== 'object') return acc;
-          const beforePhotos = Array.isArray(session.beforePhotos) ? session.beforePhotos : [];
-          const afterPhotos = Array.isArray(session.afterPhotos) ? session.afterPhotos : [];
-          const allPhotos = [...beforePhotos, ...afterPhotos];
-          return acc + allPhotos.filter((p: any) => {
-            return p && p.timestamp && new Date(p.timestamp).toDateString() === new Date().toDateString();
-          }).length;
-        }, 0),
-        completedSessions: allSessions.filter((s: any) => {
-          if (!s || typeof s !== 'object') return false;
-          const beforePhotos = Array.isArray(s.beforePhotos) ? s.beforePhotos : [];
-          const afterPhotos = Array.isArray(s.afterPhotos) ? s.afterPhotos : [];
-          const videos = Array.isArray(s.videos) ? s.videos : [];
-          return beforePhotos.length > 0 && afterPhotos.length > 0 && videos.length > 0;
-        }).length,
-      };
-      setStats(newStats);
     };
     
     fetchStats();
@@ -119,35 +101,41 @@ export default function WorkflowPage() {
           </Card>
         </Link>
 
-        <Card className="border-l-4 border-emerald-500">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-extrabold text-gray-900">{stats.photosToday}</p>
-              <p className="text-sm text-emerald-600 font-medium mt-1">Photos Today</p>
-            </div>
-            <Smile className="h-8 w-8 text-emerald-400 opacity-50" />
-          </CardContent>
-        </Card>
+        <Link href="/dashboard/media-management" className="cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow border-l-4 border-emerald-500">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-3xl font-extrabold text-gray-900">{stats.photosToday}</p>
+                <p className="text-sm text-emerald-600 font-medium mt-1">Photos Today</p>
+              </div>
+              <Smile className="h-8 w-8 text-emerald-400 opacity-50" />
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-l-4 border-cyan-500">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-extrabold text-gray-900">{stats.completedSessions}</p>
-              <p className="text-sm text-cyan-600 font-medium mt-1">Completed Sessions</p>
-            </div>
-            <CheckCircle className="h-8 w-8 text-cyan-400 opacity-50" />
-          </CardContent>
-        </Card>
+        <Link href="/dashboard/media-management" className="cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow border-l-4 border-cyan-500">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-3xl font-extrabold text-gray-900">{stats.completedSessions}</p>
+                <p className="text-sm text-cyan-600 font-medium mt-1">Completed Sessions</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-cyan-400 opacity-50" />
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-l-4 border-amber-500">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-extrabold text-gray-900">{stats.waitingPatients}</p>
-              <p className="text-sm text-amber-600 font-medium mt-1">Waiting Patients</p>
-            </div>
-            <Clock className="h-8 w-8 text-amber-400 opacity-50" />
-          </CardContent>
-        </Card>
+        <Link href="/dashboard/workflow/patient-queue" className="cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow border-l-4 border-amber-500">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-3xl font-extrabold text-gray-900">{stats.waitingPatients}</p>
+                <p className="text-sm text-amber-600 font-medium mt-1">Waiting Patients</p>
+              </div>
+              <Clock className="h-8 w-8 text-amber-400 opacity-50" />
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Main Workflow Actions */}

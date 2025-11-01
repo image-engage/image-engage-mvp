@@ -27,5 +27,18 @@ router.get('/review-settings', authenticateToken, SettingsController.getReviewSe
  */
 router.get('/users', authenticateToken, SettingsController.getPracticeUsers);
 
+/**
+ * @route PUT /api/settings/practice-profile
+ * @description Update the practice profile.
+ * @access Private
+ */
+router.put('/practice-profile', authenticateToken, SettingsController.updatePracticeProfile);
+
+/**
+ * @route PUT /api/settings/review-settings
+ * @description Update the review settings.
+ * @access Private
+ */
+router.put('/review-settings', authenticateToken, SettingsController.updateReviewSettings);
 
 export default router;

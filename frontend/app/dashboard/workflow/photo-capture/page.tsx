@@ -28,6 +28,13 @@ interface StagedMedia {
   type: string;
   category: 'before' | 'after';
   qualityStatus?: "PASS" | "FAIL";
+  qualityScore?: number;
+  qualityMetrics?: {
+    brightness: number;
+    contrast: number;
+    sharpness: number;
+  };
+  recommendations?: string[];
   acceptedPoorQuality?: boolean;
 }
 
@@ -54,6 +61,13 @@ interface PatientSession {
 interface QualityCheckResponse {
   status: "PASS" | "FAIL";
   reason: string;
+  qualityScore: number;
+  metrics: {
+    brightness: number;
+    contrast: number;
+    sharpness: number;
+  };
+  recommendations: string[];
   data: {
     isBlurry: boolean;
     focusScore: number;
@@ -191,19 +205,28 @@ export default function PhotoCapture() {
   const handlePhotoCaptured = async (file: File, type: string, category: 'before' | 'after') => {
     setCheckingQualityFor(type);
     const qualityResult = await checkImageQuality(file);
-    const status = qualityResult?.status || 'PASS'; // Default to PASS if check fails
+    const status = qualityResult?.status || 'PASS';
 
     if (status === 'FAIL') {
       toast.warning('Image Quality Alert', {
-        description: `${qualityResult?.reason || 'Image has quality issues.'}. You can retake it or accept it.`,
-        duration: 8000,
+        description: `${qualityResult?.reason || 'Image has quality issues.'}. Score: ${qualityResult?.qualityScore || 0}/100`,
+        duration: 10000,
       });
+      
+      // Show recommendations if available
+      if (qualityResult?.recommendations?.length) {
+        toast.info('Quality Recommendations', {
+          description: qualityResult.recommendations.join(', '),
+          duration: 8000,
+        });
+      }
     } else {
-      toast.success('Image Quality Check Passed', { description: 'The photo is clear and ready to be staged.' });
+      toast.success('Image Quality Check Passed', { 
+        description: `Excellent photo quality! Score: ${qualityResult?.qualityScore || 100}/100` 
+      });
     }
-    // Always stage the photo, but with its quality status
-    stagePhoto(file, type, category, status);
-    // Add a small delay to allow the user to see the "Staged" state before the loader disappears
+    
+    stagePhoto(file, type, category, status, qualityResult);
     setTimeout(() => setCheckingQualityFor(null), 500);
   };
 
@@ -408,14 +431,17 @@ export default function PhotoCapture() {
     toast.info('Video removed from staging.');
   };
 
-  const stagePhoto = (file: File, type: string, category: 'before' | 'after', qualityStatus: "PASS" | "FAIL") => {
+  const stagePhoto = (file: File, type: string, category: 'before' | 'after', qualityStatus: "PASS" | "FAIL", qualityResult?: QualityCheckResponse | null) => {
     const newStagedPhoto: StagedMedia = {
       file,
       previewUrl: URL.createObjectURL(file),
       type,
       category,
       qualityStatus,
-      acceptedPoorQuality: qualityStatus === 'PASS', // Automatically accept good photos
+      qualityScore: qualityResult?.qualityScore,
+      qualityMetrics: qualityResult?.metrics,
+      recommendations: qualityResult?.recommendations,
+      acceptedPoorQuality: qualityStatus === 'PASS',
     };
 
     if (type === 'additional') {
@@ -971,13 +997,20 @@ export default function PhotoCapture() {
                     />
                     <Badge className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs">{PHOTO_LABELS[photo.type]}</Badge>
                     {photo.qualityStatus === 'PASS' && (
-                      <Badge variant="secondary" className="absolute top-2 left-2 bg-green-100 text-green-800 text-xs">Passes Quality Check</Badge>
+                      <Badge variant="secondary" className="absolute top-2 left-2 bg-green-100 text-green-800 text-xs">
+                        Quality: {photo.qualityScore || 100}/100
+                      </Badge>
                     )}
                     {photo.qualityStatus === 'FAIL' && (
                       <Badge variant="destructive" className="absolute top-2 left-2 text-xs">
                         <AlertTriangle className="h-3 w-3 mr-1" />
-                        Poor Quality - Consider Retake
+                        Quality: {photo.qualityScore || 0}/100
                       </Badge>
+                    )}
+                    {photo.qualityMetrics && (
+                      <div className="absolute bottom-8 left-2 bg-black/70 text-white text-xs p-1 rounded">
+                        B:{photo.qualityMetrics.brightness} C:{photo.qualityMetrics.contrast} S:{photo.qualityMetrics.sharpness}
+                      </div>
                     )}
                     <Button
                       onClick={(e) => { e.stopPropagation(); handleRemoveStagedPhoto(photo); }}
@@ -1009,13 +1042,20 @@ export default function PhotoCapture() {
                     />
                     <Badge className="absolute bottom-2 left-2 bg-purple-600 text-white text-xs">Additional Photo</Badge>
                     {photo.qualityStatus === 'PASS' && (
-                      <Badge variant="secondary" className="absolute top-2 left-2 bg-green-100 text-green-800 text-xs">Passes Quality Check</Badge>
+                      <Badge variant="secondary" className="absolute top-2 left-2 bg-green-100 text-green-800 text-xs">
+                        Quality: {photo.qualityScore || 100}/100
+                      </Badge>
                     )}
                     {photo.qualityStatus === 'FAIL' && (
                       <Badge variant="destructive" className="absolute top-2 left-2 text-xs">
                         <AlertTriangle className="h-3 w-3 mr-1" />
-                        Poor Quality - Consider Retake
+                        Quality: {photo.qualityScore || 0}/100
                       </Badge>
+                    )}
+                    {photo.qualityMetrics && (
+                      <div className="absolute bottom-8 left-2 bg-black/70 text-white text-xs p-1 rounded">
+                        B:{photo.qualityMetrics.brightness} C:{photo.qualityMetrics.contrast} S:{photo.qualityMetrics.sharpness}
+                      </div>
                     )}
                     <Button
                       onClick={(e) => { e.stopPropagation(); handleRemoveStagedPhoto(photo); }}

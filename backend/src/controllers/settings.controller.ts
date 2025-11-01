@@ -46,4 +46,32 @@ export class SettingsController {
     const result = await SettingsService.getPracticeUsers(practiceId);
     res.status(result.success ? 200 : 500).json(result);
   }
+
+  /**
+   * Updates the practice profile.
+   */
+  static async updatePracticeProfile(req: AuthRequest, res: Response): Promise<void> {
+    const practiceId = req.user?.practiceId;
+    if (!practiceId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const result = await SettingsService.updatePracticeProfile(practiceId, req.body);
+    res.status(result.success ? 200 : 500).json(result);
+  }
+
+  /**
+   * Updates the review settings.
+   */
+  static async updateReviewSettings(req: AuthRequest, res: Response): Promise<void> {
+    const practiceId = req.user?.practiceId;
+    if (!practiceId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const result = await SettingsService.updateReviewSettings(practiceId, req.body);
+    res.status(result.success ? 200 : 500).json(result);
+  }
 }
