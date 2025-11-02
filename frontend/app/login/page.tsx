@@ -45,7 +45,6 @@ export default function LoginPage() {
 
     try {
       const response: ApiResponse<LoginSuccessData> = await api.post('/cognito-auth/login', { email, password });
-      console.log("change to trigger deployment...");
       
       if (response.success) {
         // Handle MFA challenge
