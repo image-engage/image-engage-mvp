@@ -9,6 +9,7 @@ app.listen(PORT, () => {
   console.log(`🚀 EmageSmileAI Backend API server running on port ${PORT}`);
   console.log(`📚 Health check: http://localhost:${PORT}/health`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔧 Debug mode: ${process.env.DEBUG_MODE === 'true' ? 'enabled' : 'disabled'}`);
 });
 
 // Graceful shutdown
