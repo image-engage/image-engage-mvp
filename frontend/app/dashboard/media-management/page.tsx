@@ -235,7 +235,7 @@ export default function PatientMediaDashboard() {
             setIsLoadingPatients(true);
             try {
                 const patientsData = await api.get<Patient[]>('/patients');
-                const consentsResponse = await api.get('/consents');
+                const consentsResponse = await api.get<ApiResponse<any[]>>('/consents');
                 const consents = Array.isArray(consentsResponse?.data) ? consentsResponse.data : [];
                 
                 const patientsWithProcedures = patientsData.map(patient => {

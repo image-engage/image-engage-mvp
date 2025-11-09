@@ -20,16 +20,23 @@ import {
   Plus,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api, ApiError } from '@/components/lib/api';
+import { api, ApiError, ApiResponse } from '@/components/lib/api';
 
 // --- Type Definitions ---
 
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
+
 interface PracticeProfile {
   name: string;
-  address: string;
+  address: Address;
   phone: string;
   email: string;
-  website: string;
+  website_url: string;
   logo_url?: string;
   brand_color?: string;
 }
@@ -85,9 +92,9 @@ export default function SettingsPage() {
 
       // Fetch all settings data in parallel
       const [profileRes, reviewRes, usersRes] = await Promise.all([
-        api.get('/settings/practice-profile', token),
-        api.get('/settings/review-settings', token),
-        api.get('/settings/users', token),
+        api.get<ApiResponse>('/settings/practice-profile', token),
+        api.get<ApiResponse>('/settings/review-settings', token),
+        api.get<ApiResponse>('/settings/users', token),
       ]);
 
       if (profileRes?.success && profileRes.data) setProfile(profileRes.data);
@@ -110,6 +117,16 @@ export default function SettingsPage() {
 
   const handleProfileChange = (field: keyof PracticeProfile, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddressChange = (field: keyof Address, value: string) => {
+    setProfile(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        [field]: value
+      }
+    }));
   };
 
   const handleReviewSettingsChange = (field: keyof ReviewSettings, value: any) => {
@@ -145,15 +162,15 @@ export default function SettingsPage() {
 
       let response;
       if (section === 'profile') {
-        response = await api.put('/settings/practice-profile', profile, token);
+        response = await api.put<ApiResponse>('/settings/practice-profile', profile, token);
       } else if (section === 'reviews') {
-        response = await api.put('/settings/review-settings', reviewSettings, token);
+        response = await api.put<ApiResponse>('/settings/review-settings', reviewSettings, token);
       }
 
       if (response?.success) {
         toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully!`);
       } else {
-        throw new Error(response?.message || 'Failed to save settings.');
+        throw new Error(response?.message2 || 'Failed to save settings.');
       }
     } catch (err) {
       console.error(`Failed to save ${section} settings:`, err);
@@ -219,9 +236,48 @@ export default function SettingsPage() {
                   <Input id="phone" value={profile.phone || ''} onChange={(e) => handleProfileChange('phone', e.target.value)} />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" value={profile.address || ''} onChange={(e) => handleProfileChange('address', e.target.value)} />
+              <div className="space-y-4">
+                <Label>Address</Label>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="street">Street Address</Label>
+                    <Input 
+                      id="street" 
+                      value={profile.address?.street || ''} 
+                      onChange={(e) => handleAddressChange('street', e.target.value)} 
+                      placeholder="123 Main Street"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input 
+                        id="city" 
+                        value={profile.address?.city || ''} 
+                        onChange={(e) => handleAddressChange('city', e.target.value)} 
+                        placeholder="City"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State</Label>
+                      <Input 
+                        id="state" 
+                        value={profile.address?.state || ''} 
+                        onChange={(e) => handleAddressChange('state', e.target.value)} 
+                        placeholder="State"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="zipCode">ZIP Code</Label>
+                      <Input 
+                        id="zipCode" 
+                        value={profile.address?.zipCode || ''} 
+                        onChange={(e) => handleAddressChange('zipCode', e.target.value)} 
+                        placeholder="12345"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -230,7 +286,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="website">Website URL</Label>
-                  <Input id="website" value={profile.website || ''} onChange={(e) => handleProfileChange('website', e.target.value)} />
+                  <Input id="website" value={profile.website_url || ''} onChange={(e) => handleProfileChange('website', e.target.value)} />
                 </div>
               </div>
             </CardContent>

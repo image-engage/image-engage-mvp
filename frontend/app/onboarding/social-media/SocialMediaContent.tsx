@@ -19,6 +19,7 @@ import {
 
 // Assuming this type is defined elsewhere in your project
 interface SocialMedia {
+  websiteUrl?: string;
   platforms: {
     instagram: { connected: boolean; username: string; };
     facebook: { connected: boolean; pageId: string; };

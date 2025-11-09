@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { api, ApiError } from '@/components/lib/api';
+import { api, ApiError, ApiResponse } from '@/components/lib/api';
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [verificationStatus, setVerificationStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
@@ -37,7 +37,7 @@ export default function VerifyEmailPage() {
           return;
         }
         
-        const response = await api.post('/cognito-auth/confirm-signup', { 
+        const response = await api.post<ApiResponse>('/cognito-auth/confirm-signup', { 
           email, 
           confirmationCode: code 
         });
@@ -175,5 +175,30 @@ export default function VerifyEmailPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="w-full max-w-sm sm:max-w-md">
+          <Card className="shadow-2xl border-t-4 border-blue-600 rounded-xl">
+            <CardHeader className="text-center pt-10 pb-4 space-y-3">
+              <div className="flex justify-center mb-2">
+                <div className="p-3 rounded-full bg-blue-100">
+                  <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-bold text-gray-900">
+                Loading...
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

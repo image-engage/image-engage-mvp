@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Mail, Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { api, ApiError } from '@/components/lib/api';
+import { api, ApiError, ApiResponse } from '@/components/lib/api';
 
 export default function ConfirmEmailPage() {
   const [email, setEmail] = useState('');
@@ -37,7 +37,7 @@ export default function ConfirmEmailPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/cognito-auth/confirm-signup', {
+      const response = await api.post<ApiResponse>('/cognito-auth/confirm-signup', {
         email,
         confirmationCode,
       });
@@ -175,7 +175,7 @@ export default function ConfirmEmailPage() {
                     return;
                   }
                   try {
-                    const response = await api.post('/cognito-auth/resend-confirmation', { email });
+                    const response = await api.post<ApiResponse>('/cognito-auth/resend-confirmation', { email });
                     if (response.success) {
                       toast.success('New verification code sent to your email!');
                     } else {

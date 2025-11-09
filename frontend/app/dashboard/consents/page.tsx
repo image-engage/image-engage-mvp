@@ -9,7 +9,7 @@ import { Search, Download, X, CheckCircle, FileText, ChevronLeft, ChevronRight, 
 import { format } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from 'sonner';
-import { api, ApiError } from '@/components/lib/api';
+import { api, ApiError, ApiResponse } from '@/components/lib/api';
 
 interface PatientConsent {
   id: string;
@@ -22,12 +22,6 @@ interface PatientConsent {
   status: 'completed' | 'pending';
   signature_data: string | null;
   created_at: string;
-}
-
-interface ApiResponse<T = any> {
-  success: boolean;
-  message2: string;
-  data?: T;
 }
 
 export default function ConsentsPage() {
@@ -85,7 +79,7 @@ export default function ConsentsPage() {
   const handleDownload = async (consent: PatientConsent, download: boolean = false) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await api.get(`/consents/${consent.id}/download`, token);
+      const response = await api.get<ApiResponse>(`/consents/${consent.id}/download`, token || undefined);
       
       if (response.success && response.data?.url) {
         const url = response.data.url;
