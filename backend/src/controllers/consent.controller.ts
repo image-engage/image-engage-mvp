@@ -1,5 +1,6 @@
 import { Response } from 'express';
-import { AuthenticatedRequest, ApiResponse } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/auth';
+import { ApiResponse } from '../types';
 import { ConsentService } from '../services/consent.service';
 
 /**

@@ -13,10 +13,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 type PageProps = {
+  onNext?: () => void;
   onBack: () => void;
 };
 
-export default function LegalContent({ onBack }: PageProps) {
+export default function LegalContent({ onNext, onBack }: PageProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
@@ -61,7 +62,7 @@ export default function LegalContent({ onBack }: PageProps) {
       };
 
       // 2. Call the new backend endpoint
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/practice/complete-onboarding`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/practice/complete-onboarding`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

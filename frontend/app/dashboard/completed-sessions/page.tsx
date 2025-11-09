@@ -25,7 +25,7 @@ import {
 import { format } from 'date-fns';
 import Image from 'next/image';
 import Link from 'next/link';
-import { api } from '@/components/lib/api';
+import { api, ApiError, ApiResponse } from '@/components/lib/api';
 
 interface CompletedSession {
   id: string;
@@ -83,7 +83,7 @@ export default function CompletedSessionsPage() {
       if (dateRange.end) params.append('endDate', dateRange.end);
       
       const token = localStorage.getItem('token');
-      const response = await api.get(`/completed-sessions?${params.toString()}`, token);
+      const response = await api.get<ApiResponse>(`/completed-sessions?${params.toString()}`, token || undefined);
       
       if (response.success) {
         setSessions(response.data || []);
@@ -136,7 +136,7 @@ export default function CompletedSessionsPage() {
     for (const file of selectedFiles) {
       try {
         const token = localStorage.getItem('token');
-        const response = await api.get(`/completed-sessions/download/${encodeURIComponent(file.url)}`, token);
+        const response = await api.get<ApiResponse>(`/completed-sessions/download/${encodeURIComponent(file.url)}`, token || undefined);
         
         if (response.success && response.data?.url) {
           const link = document.createElement('a');
@@ -180,7 +180,7 @@ export default function CompletedSessionsPage() {
     for (const file of files) {
       try {
         const token = localStorage.getItem('token');
-        const response = await api.get(`/completed-sessions/download/${encodeURIComponent(file.url)}`, token);
+        const response = await api.get<ApiResponse>(`/completed-sessions/download/${encodeURIComponent(file.url)}`, token || undefined);
         
         if (response.success && response.data?.url) {
           const link = document.createElement('a');

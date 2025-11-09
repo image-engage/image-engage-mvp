@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Eye, EyeOff, ArrowLeft, UserPlus, Loader2, Info, CheckCircle, Mail } from 'lucide-react'; // Added icons for success screen
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { api, ApiError } from '@/components/lib/api';
+import { api, ApiError, ApiResponse } from '@/components/lib/api';
 
 // Re-defining interface from the login component for consistency
 interface LoginSuccessData {
@@ -79,7 +79,7 @@ export default function SignupPage() {
     setIsLoading(true);
     
     try {
-      const response = await api.post('/cognito-auth/register', {
+      const response = await api.post<ApiResponse>('/cognito-auth/register', {
         practiceName: formData.practiceName,
         firstName: formData.firstName,
         lastName: formData.lastName,

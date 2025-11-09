@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Eye, EyeOff, Lock, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { api, ApiError } from '@/components/lib/api';
+import { api, ApiError, ApiResponse } from '@/components/lib/api';
 
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState('');
@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/cognito-auth/reset-password', { 
+      const response = await api.post<ApiResponse>('/cognito-auth/reset-password', { 
         email,
         confirmationCode,
         newPassword 

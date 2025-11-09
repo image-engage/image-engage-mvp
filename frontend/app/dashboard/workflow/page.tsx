@@ -6,8 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, CheckCircle, Clock, ArrowRight, ListChecks, Smile } from 'lucide-react';
 import Link from 'next/link';
-import { api } from '@/components/lib/api';
-import { ApiResponse } from '../../../../backend/src/types';
+import { api, ApiError, ApiResponse } from '@/components/lib/api';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function WorkflowPage() {
@@ -53,7 +52,7 @@ export default function WorkflowPage() {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await api.get('/workflow/stats', token || undefined);
+        const response = await api.get<ApiResponse>('/workflow/stats', token || undefined);
         
         if (response.success && response.data) {
           setStats(response.data);

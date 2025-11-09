@@ -33,9 +33,9 @@ export interface JWTPayload {
 export interface Practice {
   id: string;
   name: string;
-  // Removed email and password_hash as they are now in the User table
+  email: string | null;
   phone?: string | null; // Use null for optional database fields
-  address?: string | null;
+  address?: Address | null;
   logo_url?: string | null;
   branding_colors?: {
     primary: string;
@@ -355,3 +355,10 @@ export interface GoogleDriveAuth {
   token_type: string;
   expiry_date: number;
 }
+
+export interface Address {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string
+  }

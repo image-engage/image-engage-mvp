@@ -88,6 +88,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/multer": "^2.0.0",
     "@types/signature_pad": "^2.3.4",
     "@types/uuid": "^10.0.0"
   }

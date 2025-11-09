@@ -273,10 +273,10 @@ export class PracticeService {
       // Destructure from the nested basicInfo object sent by the frontend
       const {
         address, contactInfo, websiteUrl
-      } = onboardingData?.basicInfo || {};
+      } = onboardingData || {};
       
       // Other fields might be at the top level or in other nested objects
-      const { brandColors } = onboardingData?.basicInfo || {};
+      const { brandColors } = onboardingData || {};
 
       const updatePayload: Partial<Practice> & { [key: string]: any } = {
         address: address || null, // Ensure address is handled as an object or null
